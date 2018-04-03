@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+    <head></head>
+    <body>
+        {% extends "base.html" %}
+        {% load static %}
+        {% block additionalCSS %}
+        <!-- <link href="{% static 'css/galleryLayout/animate.css' %}" rel="stylesheet">
+        <link href="{% static 'css/galleryLayout/icomoon.css' %}" rel="stylesheet">
+        <link href="{% static 'css/galleryLayout/style.css' %}" rel="stylesheet"> -->
+        <!-- <link href="{% static 'css/fileUpload/upload.css' %}" rel="stylesheet"> -->
+        <link href="{% static 'css/fileUpload/simple.css' %}" rel="stylesheet">
+        {% endblock additionalCSS %}
+        {% block content %}
+            <div class="row align-items-center" id="imgRow">
+                <div class="col-md-4" id="uploadBox">
+                    <form class="box" method="post" action="handleMultipleUpload" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="box__input">
+                            <svg class="box__icon" width="50" height="43" viewBox="0 0 50 43">
+                                <path d="M48.4 26.5c-.9 0-1.7.7-1.7 1.7v11.6h-43.3v-11.6c0-.9-.7-1.7-1.7-1.7s-1.7.7-1.7 1.7v13.2c0 .9.7 1.7 1.7 1.7h46.7c.9 0 1.7-.7 1.7-1.7v-13.2c0-1-.7-1.7-1.7-1.7zm-24.5 6.1c.3.3.8.5 1.2.5.4 0 .9-.2 1.2-.5l10-11.6c.7-.7.7-1.7 0-2.4s-1.7-.7-2.4 0l-7.1 8.3v-25.3c0-.9-.7-1.7-1.7-1.7s-1.7.7-1.7 1.7v25.3l-7.1-8.3c-.7-.7-1.7-.7-2.4 0s-.7 1.7 0 2.4l10 11.6z"></path>
+                            </svg>
+                            <input class="box__file" type="file" name="files[]" id="file" data-multiple-caption="{count} files selected" multiple="">
+                            <label for="file">
+                            <strong>Choose a file</strong><span class="box__dragndrop"> or drag it here</span>.
+                            </label>
+                            <button class="box__button" type="submit">Upload</button>
+                        </div>
+                        <div class="box__uploading">Uploading…</div>
+                        <div class="box__success">Done!</div>
+                        <div class="box__error">Error! <span></span>.</div>
+                    </form>
+                </div>
+                {% for p in picList %}
+                
+                <div class="col-md-4 imgContainer">
+                    <img src="{{p.url}}" alt="My image" class="img-responsive">
+                    <div class="row imgControls">
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handleDeleteImg(event, '{{p.pk}}')">
+                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handleThumbsUp(event, '{{p.pk}}')">
+                            <span class="glyphicon glyphicon-thumb-up" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handlePrivacy(event, '{{p.pk}}')">
+                            <span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                {% endfor %}
+            </div>
+        {% endblock content %}
+        {% block additionalJS %}
+        <script src="{% static 'js/upload.js' %}"></script>
+        {% endblock additionalJS %}
+    </body>
+</html>

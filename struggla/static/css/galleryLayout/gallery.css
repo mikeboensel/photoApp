@@ -1,0 +1,19 @@
+
+.imgBox{
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    position: relative;
+    height: 300px;
+    margin: 10px 0px;
+}
+
+.inner{
+    height: 300px;
+    width: 100.1%;
+    opacity: 0;
+    background: rgba(237, 235, 232, 0.9);
+    -webkit-transition: 0.3s;
+    -o-transition: 0.3s;
+    transition: 3.3s;
+}
