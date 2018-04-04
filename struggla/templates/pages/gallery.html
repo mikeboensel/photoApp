@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 <html>
-    <head></head>
-    <body>
         {% extends "base.html" %}
         {% load static %}
         {% block additionalCSS %}
@@ -10,10 +8,29 @@
         <link href="{% static 'css/galleryLayout/style.css' %}" rel="stylesheet"> -->
         <!-- <link href="{% static 'css/fileUpload/upload.css' %}" rel="stylesheet"> -->
         <link href="{% static 'css/fileUpload/simple.css' %}" rel="stylesheet">
+        <link href="{% static 'css/fileUpload/dropzone.css' %}" rel="stylesheet">
+
         {% endblock additionalCSS %}
         {% block content %}
+            <div id="dropzoneContainer row">
+                <form action="handleMultipleUpload" class="mt-2 mb-2 dropzone needsclick dz-clickable" id="dropzoneForm">
+                    {% csrf_token %}
+                    <div class="dz-message needsclick row justify-content-center">
+                        <p class="note needsclick">Drop files here or click to upload.<p>                        
+                    </div>
+                    <div class="fallback row justify-content-center">
+                        <input name="file" type="file" multiple />
+                    </div>
+                    <div class="row justify-content-center order-12">
+                        <button type="button" class="btn btn-primary" id="clear-dropzone">
+                            Clear Successfully Uploaded Files
+                        </button>
+                    </div>
+                </form>        
+            </div>
+        
             <div class="row align-items-center" id="imgRow">
-                <div class="col-md-4" id="uploadBox">
+              <!--    <div class="col-md-4" id="uploadBox">
                     <form class="box" method="post" action="handleMultipleUpload" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="box__input">
@@ -30,26 +47,29 @@
                         <div class="box__success">Done!</div>
                         <div class="box__error">Error! <span></span>.</div>
                     </form>
-                </div>
+                </div> 
+                -->
                 {% for p in picList %}
                 
                 <div class="col-md-4 imgContainer">
-                    <img src="{{p.url}}" alt="My image" class="img-responsive">
-                    <div class="row imgControls">
-                        <div class="col-md-4">
-                            <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handleDeleteImg(event, '{{p.pk}}')">
-                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                            </button>
-                        </div>
-                        <div class="col-md-4">
-                            <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handleThumbsUp(event, '{{p.pk}}')">
-                            <span class="glyphicon glyphicon-thumb-up" aria-hidden="true"></span>
-                            </button>
-                        </div>
-                        <div class="col-md-4">
-                            <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handlePrivacy(event, '{{p.pk}}')">
-                            <span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span>
-                            </button>
+                    <div class="maintainsWidth" style="position:relative"> <!--Had an issue with putting position relative on parent -->
+                        <img src="{{p.url}}" alt="My image" class="img-responsive">
+                        <div class="row imgControls ml-auto mr-auto">
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handleDeleteImg(event, '{{p.pk}}')">
+                                <span class="fas fa-times-circle"></span>
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handleThumbsUp(event, '{{p.pk}}')">
+                                <span class="fas fa-thumbs-up" aria-hidden="true"></span>
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handlePrivacy(event, '{{p.pk}}')">
+                                <span class="fas fa-eye"></span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -59,6 +79,11 @@
         {% endblock content %}
         {% block additionalJS %}
         <script src="{% static 'js/upload.js' %}"></script>
+        <script src="{% static 'js/dropzone.js' %}"></script>
+        <script src="{% static 'js/dropzoneRegister.js' %}"></script>
+        <script defer src="https://use.fontawesome.com/releases/v5.0.9/js/all.js" integrity="sha384-8iPTk2s/jMVj81dnzb/iFR2sdA7u06vHJyyLlAd4snFpCl/SnyUjRrbdJsw1pGIl" crossorigin="anonymous"></script>
+
+
         {% endblock additionalJS %}
     </body>
 </html>

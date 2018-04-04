@@ -1,37 +1,74 @@
-.imgContainer img{
-    width:100%;
-}
+/*Uploader*/
 
 #uploadBox {
     margin: 5px 0px;
 }
 
-.imgContainer{
-    position:relative;
-    margin: 5px 0px;
+#uploadProgress{
+    border: 1px solid black;
 }
 
-.imgControls{
-    position: absolute;
-    top: 50%;
-    width: 92%;
-    background: #07080894;   
+#dropzoneContainer {
+  margin-bottom: 3rem; }
+
+.dropzone {
+   outline: 2px dashed #0087F7; 
+   background: #ace1f0; 
+   transition: outline-offset .15s ease-in-out, background-color .15s linear;
+}
+
+.dropzone.is-dragover{
+    outline-offset:-15px;
+    background: #c8dadf
+}
+
+.dropzone .dz-message {
+    font-weight: 400; 
+}
+
+.dropzone .dz-message .note {
+      font-size: 0.8em;
+      font-weight: 200;
+      display: block;
+      margin-top: 1.4rem; 
+}
+
+/*Gallery template CSS*/
+
+.imgContainer img{
+    width:100%;
+}
+
+.imgContainer{
+    margin: 5px 0px;
+    padding:2%;
 }
 
 .imgControls.row{
-    padding:5;
+    position: absolute;
+    top: 50%;
+    width: 100%;
+    background: #07080894;   
+    border-radius:5px;
+    padding:5px;
     opacity: 0;
+    transition: 2s opacity;
 }
 
-.row.imgControls:hover{
+.imgControls.row:hover{
     opacity: 1;
 }
 
-.row.imgControls  .btn-default{
-    background: radial-gradient(#ffffff, #969696, #484848);
-    border: none;
+.imgControls.row .btn-default{
+    /* background: radial-gradient(#ffffff, #969696, #484848); */
+    background: #4496df9c;
+    outline: none;
+    color: white; /* for fontawesome icon*/
+    transition: 1.5s outline;
+    
 }
 
-.row.imgControls  .btn-default:hover{
-    border: 2px solid white;
+.imgControls.row  .btn-default:hover{
+    outline: 2px solid white;
 }
+

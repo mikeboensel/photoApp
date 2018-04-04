@@ -3,6 +3,7 @@ Base settings to build other settings files upon.
 """
 
 import environ
+import os
 
 ROOT_DIR = environ.Path(__file__) - 3  # (struggla/config/settings/base.py - 3 = struggla/)
 APPS_DIR = ROOT_DIR.path('struggla')
@@ -76,6 +77,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     'struggla.users.apps.UsersConfig',
     'picManager',
+    'storages',
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -258,3 +260,24 @@ SOCIALACCOUNT_ADAPTER = 'struggla.users.adapters.SocialAccountAdapter'
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+
+#AWS enabling
+
+# DEFAULT_FILE_STORAGE = 'picManager.storage_backends.MediaStorage' # 'storages.backends.s3boto3.S3Boto3Storage'
+
+# http://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html
+# To allow django-admin.py collectstatic to automatically put your static files in your bucket set the following in your settings.py:
+
+# TODO: Regenerate keys later. Can't store here
+
+# AWS_ACCESS_KEY_ID = 'AKIAJH3PILWPMAEMZIPQ'
+# AWS_SECRET_ACCESS_KEY = 'yBsX6Xwf1SXIIjkVPqIzRJyHGE1z4ngaMYSiA0B3'
+# AWS_STORAGE_BUCKET_NAME = 'iys-static'
+# AWS_S3_CUSTOM_DOMAIN = '%s.s3.amazonaws.com' % AWS_STORAGE_BUCKET_NAME
+# AWS_S3_OBJECT_PARAMETERS = {
+#     'CacheControl': 'max-age=86400',
+# }
+# AWS_LOCATION = 'static'
+# 
+# STATIC_URL = 'https://%s/%s/' % (AWS_S3_CUSTOM_DOMAIN, AWS_LOCATION)
+# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'

@@ -11,22 +11,26 @@ import os, sys
 from PIL import Image
 
 def index(request):
-    pics = picEntry.objects.all()
+    pics = picEntry.objects.order_by('-upload_date')[:10]
     #imgLocation = '/static/picUpload/img/'
     #picDir = PROJECT_ROOT + imgLocation
     #img_list =os.listdir(picDir)
     img_list = []
     for p in pics:
-        img_list.append({'url':p.pic.url, 'pk':p.pk})
+        img_list.append({'url':p.thumbnail.url, 'fullImgUrl': p.pic.url, 'pk':p.pk})
     
     return render(request, 'pages/gallery.html', {'picList':img_list}) #todo work in dynamic determination of pics
 
 size = 128, 128
 # Create your views here.
 def handleMultipleUpload(request):
-    if request.method == 'POST' and request._files.getlist('files[]'):
+    # currently have 2 different HTML approaches. Deciding between them. 
+    if request.method == 'POST' and (request._files.getlist('files[]') or request._files.getlist('file')):
         files = request._files.getlist('files[]')
+        if len(files) == 0:
+            files = request._files.getlist('file')
 
+        print(files)
         addedFiles = []
         for file in files:
             p = picEntry(pic = file)
@@ -38,7 +42,7 @@ def handleMultipleUpload(request):
             
             if p.notDupe():
                 p.save()
-                addedFiles.append(p.pic.url)
+                addedFiles.append(p.thumbnail.url)
         
         #old Filestorage way
 #         fs = FileSystemStorage()
