@@ -35,6 +35,34 @@
 
 /*Gallery template CSS*/
 
+#opacityOverlay{
+    height: 100%;
+    width: 100%;
+    background: #16151536;
+    z-index: 100;
+    top: 0%;
+    left:0%;
+    position: fixed;
+}
+
+#fullScreenDisplay {
+    background: white;
+    padding: 3%;
+    position: fixed;
+    z-index: 120;
+    height: 100%;
+    width: 70%;
+    overflow: scroll;
+    left: 50%;
+    transform: translate(-50%, 0%);
+    top: 0;
+}
+
+.hidden{
+    visibility: hidden;
+}
+
+
 .imgContainer img{
     width:100%;
 }

@@ -1,5 +1,6 @@
 from django.shortcuts import render
 
+from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from .models import picEntry
@@ -17,12 +18,13 @@ def index(request):
     #img_list =os.listdir(picDir)
     img_list = []
     for p in pics:
-        img_list.append({'url':p.thumbnail.url, 'fullImgUrl': p.pic.url, 'pk':p.pk})
+        img_list.append({'thumbURL':p.thumbnail.url, 'fullSizeURL': p.pic.url, 'pk':p.pk})
     
     return render(request, 'pages/gallery.html', {'picList':img_list}) #todo work in dynamic determination of pics
 
 size = 128, 128
 # Create your views here.
+@login_required
 def handleMultipleUpload(request):
     # currently have 2 different HTML approaches. Deciding between them. 
     if request.method == 'POST' and (request._files.getlist('files[]') or request._files.getlist('file')):
@@ -34,6 +36,7 @@ def handleMultipleUpload(request):
         addedFiles = []
         for file in files:
             p = picEntry(pic = file)
+            p.owner = request.user.id
             p.title = 'filler'
 #             p.upload_date = timezone.now() #now handled automatically in model 
             p.likes = 0
@@ -57,13 +60,14 @@ def handleMultipleUpload(request):
 
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 
+@login_required
 def handleDeleteImg(request):
     #Would need check on ownership of file
     picPK = request.POST['pk']
     p = picEntry.objects.get(pk=picPK)
-    p.delete()
-    return JsonResponse({'success':False, 'msg':'Recieved request'})
-#     return JsonResponse({'success':False, 'msg':'Recieved request'}, status = 500) #non HTTP 200 response
-
-def simpleView(request):
-    return HttpResponse("Made it")
+    if p.owner == request.user.id:
+        p.delete()
+    else:
+        print("Invalid: Attempt by User {1} to delete photo {2} not belonging to them".format(request.user.id, picPK))
+    return JsonResponse({'success':False, 'msg':'Received request'})
+#     return JsonResponse({'success':False, 'msg':'Received request'}, status = 500) #non HTTP 200 response

@@ -25,6 +25,7 @@ class picEntry(models.Model):
     pic = models.ImageField()
     thumbnail = models.ImageField(default=None, blank=True, null=True)
     likes = models.PositiveIntegerField()
+    owner = models.PositiveIntegerField()
     # commentThreadIndex =
 # 	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True) #uuid generation
 

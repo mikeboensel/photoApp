@@ -53,3 +53,19 @@ var dragAndDropForm = document.getElementById('dropzoneForm');
             dragAndDropForm.classList.remove( 'is-dragover' );
         });
 });
+
+
+//TODO out of place. Temporary. 
+
+function viewFullSize(fullSizeImgURL){
+    $("#fullScreenDisplay img")[0].src = fullSizeImgURL;
+    //TODO comments
+    $("#fullScreenDisplay").removeClass('hidden');
+    $("#opacityOverlay").removeClass('hidden');  
+}
+
+//Called when opacity overlay is clicked. Sets visibility of #fullScreenDisplay to hidden. Ditto for #opacityOverlay
+function dismissFullSize(){
+    $("#fullScreenDisplay").addClass('hidden');
+    $("#opacityOverlay").addClass('hidden');        
+}

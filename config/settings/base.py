@@ -43,6 +43,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': env.str('SQL_LITE_DB_LOC', 'mydatabase.db'), #Pydev runs from a level up. Need environment variable defined in run config to bring it to ./<ProjName>/mydatabase.db
+        'OPTIONS':{
+            'timeout': 20,
+        }
     }
     #'default': env.db('DATABASE_URL', default='postgres://localhost/struggla'),
 }

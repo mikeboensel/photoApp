@@ -12,25 +12,37 @@
 
         {% endblock additionalCSS %}
         {% block content %}
-            <div id="dropzoneContainer row">
-                <form action="handleMultipleUpload" class="mt-2 mb-2 dropzone needsclick dz-clickable" id="dropzoneForm">
-                    {% csrf_token %}
-                    <div class="dz-message needsclick row justify-content-center">
-                        <p class="note needsclick">Drop files here or click to upload.<p>                        
-                    </div>
-                    <div class="fallback row justify-content-center">
-                        <input name="file" type="file" multiple />
-                    </div>
-                    <div class="row justify-content-center order-12">
-                        <button type="button" class="btn btn-primary" id="clear-dropzone">
-                            Clear Successfully Uploaded Files
-                        </button>
-                    </div>
-                </form>        
+            <!-- Used during picture full screen viewing -->
+            <div id="opacityOverlay" class="hidden" onclick="dismissFullSize()"></div>
+            <div id="fullScreenDisplay" class="hidden">
+                <img src="filler" style="height: 100%;">
+                <div>Comments!!!</div>
+                <div onclick="dismissFullSize()" style="position:relative; font-size: xx-large; right:-20%">X</div>
             </div>
+            
+        
+            {% if user.is_authenticated %}
+                <div id="dropzoneContainer row">
+                    <form action="handleMultipleUpload" class="mt-2 mb-2 dropzone needsclick dz-clickable" id="dropzoneForm">
+                        {% csrf_token %}
+                        <div class="dz-message needsclick row justify-content-center">
+                            <p class="note needsclick">Drop files here or click to upload.<p>                        
+                        </div>
+                        <div class="fallback row justify-content-center">
+                            <input name="file" type="file" multiple />
+                        </div>
+                        <div class="row justify-content-center order-12">
+                            <button type="button" class="btn btn-primary" id="clear-dropzone">
+                                Clear Successfully Uploaded Files
+                            </button>
+                        </div>
+                    </form>        
+                </div>
+            {% endif %}
         
             <div class="row align-items-center" id="imgRow">
-              <!--    <div class="col-md-4" id="uploadBox">
+              <!-- First take at uploads   
+                <div class="col-md-4" id="uploadBox">
                     <form class="box" method="post" action="handleMultipleUpload" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="box__input">
@@ -53,7 +65,7 @@
                 
                 <div class="col-md-4 imgContainer">
                     <div class="maintainsWidth" style="position:relative"> <!--Had an issue with putting position relative on parent -->
-                        <img src="{{p.url}}" alt="My image" class="img-responsive">
+                        <img src="{{p.thumbURL}}" alt="My image" class="img-responsive" onclick="viewFullSize('{{p.fullSizeURL}}')">
                         <div class="row imgControls ml-auto mr-auto">
                             <div class="col-md-4">
                                 <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handleDeleteImg(event, '{{p.pk}}')">
