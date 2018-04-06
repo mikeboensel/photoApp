@@ -7,8 +7,8 @@ from django.views import defaults as default_views
 
 urlpatterns = [
     url(r'^$', TemplateView.as_view(template_name='pages/home.html'), name='home'),
-    url(r'about/', TemplateView.as_view(template_name='pages/about.html'), name='about'),
-    url(r'gallery/', include('picManager.urls')),
+    url(r'^about/$', TemplateView.as_view(template_name='pages/about.html'), name='about'),
+    url(r'^gallery/', include('picManager.urls')),
     
 
     # Django Admin, use {% url 'admin:index' %}

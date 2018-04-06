@@ -5,6 +5,7 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 import hashlib
 
+
 class picEntry(models.Model):
     # 	https://docs.python.org/3/library/hashlib.html
     # 	https://www.pythoncentral.io/hashing-files-with-python/
@@ -24,15 +25,20 @@ class picEntry(models.Model):
     title = models.CharField(max_length=30)
     pic = models.ImageField()
     thumbnail = models.ImageField(default=None, blank=True, null=True)
-    likes = models.PositiveIntegerField()
+    likes = models.PositiveIntegerField(default=0)
     owner = models.PositiveIntegerField()
+    
+    #Everything starts off private. 
+    public = models.BooleanField(default=False)
+    private = models.BooleanField(default=True)
+    #More granular permissions to come     
     # commentThreadIndex =
+    #TODO currently using PK. Might want to generate something like this
 # 	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True) #uuid generation
 
     upload_date = models.DateTimeField(auto_now_add=True)
 # 	https://stackoverflow.com/questions/16853815/how-to-generate-hash-for-django-model
     sha256 = models.CharField(max_length=64)  # , default=_createHash)
-    # TODO no association with user. No auth. Need to fix this.
 
 #     def createPicEntry(self, p):
 #         self.pic = p
@@ -85,3 +91,20 @@ class picEntry(models.Model):
             temp_thumb.close()
     
             return True
+
+class comment(models.Model):
+    associatePic = models.ForeignKey(
+        picEntry,
+        on_delete=models.CASCADE,
+    )
+    
+    user = models.PositiveIntegerField()
+    contents = models.CharField(max_length=500)
+    upload_date = models.DateTimeField(auto_now_add=True)
+    edit_date = models.DateTimeField(default=None, blank=True, null=True)
+
+
+class animal(models.Model):
+    name = models.CharField(max_length=50)
+    type = models.CharField(max_length=50)
+    number_we_have = models.PositiveIntegerField(default=0)
