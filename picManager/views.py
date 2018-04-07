@@ -13,6 +13,7 @@ from PIL import Image
 from struggla.users.models import User 
 from _tkinter import create
 from django.http.response import Http404
+from htmlmin.decorators import minified_response
 
 def index(request, userName='admin'):
     

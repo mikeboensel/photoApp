@@ -32,11 +32,8 @@ class ViewTests(TestCase):
         self.assertEquals(view.func, handlePicCommentAction)   
         
     def test_get_comment_resolves_view(self):
-        view = resolve('/gallery/getPicComments/?pic=1')
-        print(view)
-        print(view.func)
-        self.assertEquals(view.func, getPicComments) 
-        
+        view = resolve('/gallery/getPicComments?pic=1')
+        self.assertEquals(view.func, getPicComments)   
     
     def create_pic(self):  # TODO WTF? What does this one even do?
         response = self.client.get('/media/ChessRobot.jpg')
@@ -98,12 +95,12 @@ class VisibilityPermissionTests(TestCase):
 class DeleteTests(TestCase):
     def setUp(self):
         userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
-        User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
+        userB = User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
         pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
         pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
         
         picEntry.objects.create(pic=pic_public, owner=userA, public=True, private=False)
-        picEntry.objects.create(pic=pic_private, owner=userA)
+        picEntry.objects.create(pic=pic_private, owner=userA) 
         
     def tearDown(self):
         for p in picEntry.objects.all():
@@ -202,10 +199,41 @@ class DeleteTests(TestCase):
         self.client.login(username='aGuy2', password='abc')
         self.check_bad_comment_case(99)
         
+
+class CommentRetrieval(TestCase):
+    def setUp(self):
+        userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
+        userB = User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
+        pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
+        pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
         
-    def test_get_comment_list(self):
-        response = self.client.get('/gallery/getPicComments/?pic=1')
+        pic_entry_public = picEntry.objects.create(pic=pic_public, owner=userA, public=True, private=False)
+        picEntry.objects.create(pic=pic_private, owner=userA) 
+        
+        #no comments on private pic, 2 on public
+        comment.objects.create(associatePic=pic_entry_public, user=userB, contents="HideyHoo!")
+        comment.objects.create(associatePic=pic_entry_public, user=userA, contents="Good to see you")
+    
+    def tearDown(self):
+        for p in picEntry.objects.all():
+            p.pic.delete(save=False)
+            p.thumbnail.delete(save=False) 
+
+    def test_get_empty_comment_list(self):
+        response = self.client.get('/gallery/getPicComments?pic=2')
         print(response)
+        print(response.content)
+        self.assertContains(response,'<ul id="commentList">')
+        #Not bothering with proving its empty. Can always 
+#         print(response.content)
+
+    def test_get_2_comment_list(self):
+        response = self.client.get('/gallery/getPicComments?pic=1')
+        print(response.content)
+        self.assertContains(response,'HideyHoo!')
+        self.assertContains(response, "Good to see you")
+        
+
         
 class AnimalTests(TestCase):
     @classmethod

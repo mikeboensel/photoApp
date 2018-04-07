@@ -67,3 +67,6 @@ INSTALLED_APPS += ['django_extensions']  # noqa F405
 CELERY_ALWAYS_EAGER = True
 # Your stuff...
 # ------------------------------------------------------------------------------
+
+
+#HTML_MINIFY =  not DEBUG #The default. But I prefer seeing it
