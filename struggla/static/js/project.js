@@ -20,7 +20,7 @@ Issues with the above approach:
 */
 $('.form-group').removeClass('row');
 
-function handleDeleteImg(e, pk) {
+function handlePicDelete(e, pk) {
     var target = e.target;
 
     //Find the container object we will remove if delete is successful. 
@@ -84,3 +84,7 @@ function handlePicPrivacyChange(){
     console.log("Unimplemented");
 }
 
+function handlePicCommentAction(){
+    //TODO
+    console.log("Unimplemented");
+}

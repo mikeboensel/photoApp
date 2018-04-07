@@ -1,81 +1,142 @@
 <!DOCTYPE html>
 <html>
+    <head></head>
+    <body>
         {% extends "base.html" %}
         {% load static %}
         {% block additionalCSS %}
-        <!-- <link href="{% static 'css/galleryLayout/animate.css' %}" rel="stylesheet">
-        <link href="{% static 'css/galleryLayout/icomoon.css' %}" rel="stylesheet">
-        <link href="{% static 'css/galleryLayout/style.css' %}" rel="stylesheet"> -->
-        <!-- <link href="{% static 'css/fileUpload/upload.css' %}" rel="stylesheet"> -->
         <link href="{% static 'css/fileUpload/simple.css' %}" rel="stylesheet">
         <link href="{% static 'css/fileUpload/dropzone.css' %}" rel="stylesheet">
-
         {% endblock additionalCSS %}
-        {% block content %}
-            <!-- Used during picture full screen viewing -->
-            <div id="opacityOverlay" class="hidden" onclick="dismissFullSize()"></div>
-            <div id="fullScreenDisplay" class="hidden">
-                <img src="filler" style="height: 100%;">
-                <div>Comments!!!</div>
-                <div onclick="dismissFullSize()" style="position:relative; font-size: xx-large; right:-20%">X</div>
-            </div>
-            
         
-            {% if user.is_authenticated and isPageOwner %}
-                <div id="dropzoneContainer row">
-                    <form action="handleMultipleUpload" class="mt-2 mb-2 dropzone needsclick dz-clickable" id="dropzoneForm">
-                        {% csrf_token %}
-                        <div class="dz-message needsclick row justify-content-center">
-                            <p class="note needsclick">Drop files here or click to upload.<p>                        
+        {% block content %}
+        <!-- Used during picture full screen viewing -->
+        <div id="opacityOverlay" class="hidden" onclick="dismissFullSize()">
+            <div onclick="dismissFullSize()" id="dismissX" >
+            X
+            </div>
+        </div>
+        <div id="fullScreenDisplay" class="hidden">
+          <div class="row">
+            <!--Left Side picture portion-->
+            <div id="fullScreenPicContainer" class="col-8">
+                <img src="filler" style="width: 100%;">
+            </div>
+                
+                <!--Right side comments + actions + info -->
+                <div id="fullScreenCommentContainer" class="col-4" style="width: 100%;">
+  
+                    <!--User header-->
+                    <div class="row" id="fullScreenUserHeaderSection">
+                        <img class="col-3 offset-1" src="/media/FoodTester.jpg">
+                        <span class="col-2">User</span>
+                    </div>
+                
+                    <hr>
+        
+                    <!--Existing comments-->
+                    <div class="row" id="fullScreenUserCommentsSection">
+                        <ul id="commentList">
+                            <li class="commentItem">
+                                <span class="commentUserName">John</span>
+                                <span class="commentContents">I think this that the primary purpose in doin gthis is to ensure properl line breaks so that this is all done well</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <hr>
+                    
+                    <!-- New comment-->    
+                    <div class="row" id="fullScreenNewCommentsSection">
+                        <textarea id="newCommentTextArea" name="message" rows="10" cols="20" class="col-9">
+                            The cat was playing in the garden.
+                        </textarea>
+                        
+                        <div class="col-1">
+                            <button>
+                                <span class="fas fa-thumbs-up"></span>
+                            </button> 
+                            <button>
+                                <span class="fas fa-comment"></span>
+                            </button> 
+                            
                         </div>
-                        <div class="fallback row justify-content-center">
-                            <input name="file" type="file" multiple />
-                        </div>
-                        <div class="row justify-content-center order-12">
-                            <button type="button" class="btn btn-primary" id="clear-dropzone">
-                                Clear Successfully Uploaded Files
+
+                    </div> <!-- Close new comment-->
+                </div> <!--Close right side-->
+              </div>
+        </div> <!--Close fullScreenDisplay-->
+
+        <!--Dropzone-->
+        
+        {% if user.is_authenticated and isPageOwner %}
+        <div id="dropzoneContainer row">
+            <form action="handleMultipleUpload" class="mt-2 mb-2 dropzone needsclick dz-clickable" id="dropzoneForm">
+                {% csrf_token %}
+                <div class="dz-message needsclick row justify-content-center">
+                    <p class="note needsclick">Drop files here or click to upload.</p>
+                    <p>                        
+                    </p>
+                </div>
+                <div class="fallback row justify-content-center">
+                    <input name="file" type="file" multiple="">
+                </div>
+                <div class="row justify-content-center order-12">
+                    <button type="button" class="btn btn-primary" id="clear-dropzone">
+                    Clear Successfully Uploaded Files
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+        
+        <!--Gallery Display-->
+        
+        <div class="row align-items-center" id="imgRow">
+            {% for p in picList %}
+            <div class="col-md-4 imgContainer">
+                <div class="maintainsWidth" style="position:relative">
+                    <!--Had an issue with putting position relative on parent -->
+                    <img src="{{p.thumbURL}}" alt="My image" class="img-responsive" onclick="viewFullSize('{{p.fullSizeURL}}')">
+                    <div class="row imgControls ml-auto mr-auto justify-content-around">
+                        {% if user.is_authenticated and isPageOwner %} <!-- Pic owner controls-->
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handlePicDelete(event, '{{p.pk}}')">
+                            <span class="fas fa-times-circle"></span>
                             </button>
                         </div>
-                    </form>        
-                </div>
-            {% endif %}
-        
-            <div class="row align-items-center" id="imgRow">
-                {% for p in picList %}
-                
-                <div class="col-md-4 imgContainer">
-                    <div class="maintainsWidth" style="position:relative"> <!--Had an issue with putting position relative on parent -->
-                        <img src="{{p.thumbURL}}" alt="My image" class="img-responsive" onclick="viewFullSize('{{p.fullSizeURL}}')">
-                        <div class="row imgControls ml-auto mr-auto">
-                            <div class="col-md-4">
-                                <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handlePicDelete(event, '{{p.pk}}')">
-                                <span class="fas fa-times-circle"></span>
-                                </button>
-                            </div>
-                            <div class="col-md-4">
-                                <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handlePicLike(event, '{{p.pk}}')">
-                                <span class="fas fa-thumbs-up" aria-hidden="true"></span>
-                                </button>
-                            </div>
-                            <div class="col-md-4">
-                                <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handlePicPrivacyChange(event, '{{p.pk}}')">
-                                <span class="fas fa-eye"></span>
-                                </button>
-                            </div>
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handlePicLike(event, '{{p.pk}}')">
+                            <span class="fas fa-edit" aria-hidden="true"></span>
+                            </button>
                         </div>
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handlePicPrivacyChange(event, '{{p.pk}}')">
+                            <span class="fas fa-eye"></span>
+                            </button>
+                        </div>
+                        {% else %} <!--Non-pic owner controls -->
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handlePicDelete(event, '{{p.pk}}')">
+                            <span class="fas fa-thumbs-up"></span>
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-default" aria-label="Left Align" onclick="handlePicLike(event, '{{p.pk}}')">
+                            <span class="fas fa-comment" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
-                
-                {% endfor %}
             </div>
+            {% endfor %}
+        </div>
         {% endblock content %}
         {% block additionalJS %}
         <script src="{% static 'js/upload.js' %}"></script>
         <script src="{% static 'js/dropzone.js' %}"></script>
         <script src="{% static 'js/dropzoneRegister.js' %}"></script>
-        <script defer src="https://use.fontawesome.com/releases/v5.0.9/js/all.js" integrity="sha384-8iPTk2s/jMVj81dnzb/iFR2sdA7u06vHJyyLlAd4snFpCl/SnyUjRrbdJsw1pGIl" crossorigin="anonymous"></script>
-
-
+        <script defer="" src="https://use.fontawesome.com/releases/v5.0.9/js/all.js" integrity="sha384-8iPTk2s/jMVj81dnzb/iFR2sdA7u06vHJyyLlAd4snFpCl/SnyUjRrbdJsw1pGIl" crossorigin="anonymous"></script>
         {% endblock additionalJS %}
     </body>
 </html>

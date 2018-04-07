@@ -37,7 +37,7 @@ def index(request, userName='admin'):
     #TODO pagination
     return render(request, 'pages/gallery.html', {'picList':img_list, 'isPageOwner': isPageOwner}) 
 
-size = 128, 128
+size = 300, 300
 # Create your views here.
 @login_required
 def handleMultipleUpload(request):
@@ -92,6 +92,7 @@ def index2(request):
 
 @login_required
 def handleCommentAdd(request):
+    
     pass
 
 @login_required

@@ -1,3 +1,13 @@
+#currentUserImage{
+    height:40px;
+    width:40px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    border-radius: 50%;
+}
+
+
 /*Uploader*/
 
 #uploadBox {
@@ -33,35 +43,102 @@
       margin-top: 1.4rem; 
 }
 
-/*Gallery template CSS*/
+/*Full Screen Detail View */
 
 #opacityOverlay{
     height: 100%;
     width: 100%;
-    background: #16151536;
+    background: #00000091;
     z-index: 100;
     top: 0%;
     left:0%;
     position: fixed;
 }
 
+#dismissX{
+    font-size: xx-large;
+    cursor: pointer;
+    position: absolute;
+    right: 1%;
+    top: 0%;
+    color: white;
+}
+
 #fullScreenDisplay {
     background: white;
-    padding: 3%;
+    padding: 0% 2% 0% 0%;
     position: fixed;
     z-index: 120;
-    height: 100%;
     width: 70%;
-    overflow: scroll;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    /* Centering */
     left: 50%;
-    transform: translate(-50%, 0%);
-    top: 0;
+    top: 50%;
+    transform: translate(-50%, -50%);
 }
+
+#fullScreenUserHeaderSection{
+    height: 10%;
+    margin-top: 0%;
+    /* outline: 3px red solid; */
+    align-items: center;
+}
+
+#fullScreenCommentContainer{
+    /* outline:2px blue solid; */
+}
+
+#fullScreenUserCommentsSection{
+    margin-left: 2px;
+    overflow-x: hidden;
+    overflow-y:  scroll;
+    padding-right: 7px;
+    height: 60%;
+}
+
+#commentList{
+    list-style: none;
+    margin: 0 20px 0 0;
+    padding: 0 0 0 0;
+    /* outline: 1px red solid;
+    background: blue; */
+}
+
+#fullScreenNewCommentsSection{
+    height: 10%;
+    /* background: aqua; */
+}
+
+#newCommentTextArea{
+    /* width: 74%; */
+    /* height: 100%; */
+    display: block;
+    /* padding: 0px 5px; */
+    /* margin: auto 0; */
+    margin-left: 12px;
+    /* margin-right: auto; */
+}
+
+.commentUserName{
+    cursor:pointer;
+    font-weight: 900;
+    padding-right: 5px;
+}
+.commentContents{
+    
+}
+.commentItem{
+    margin-bottom:5px;
+}
+
 
 .hidden{
     visibility: hidden;
 }
 
+
+/* Gallery template CSS */
 
 .imgContainer img{
     width:100%;
