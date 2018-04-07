@@ -60,9 +60,11 @@
                 {# URL provided by django-allauth/account/urls.py #}
                 <a class="nav-link" href="{% url 'account_logout' %}">{% trans "Sign Out" %}</a>
               </li>
-              <div id="currentUserImage" style="background-img:url({% static 'images/couple_in_car.jpg' %});">
+              <div id="currentUserImage" style="background-image:url({% static 'images/couple_in_car.jpg' %});">
+             </div>
+
+              <span id="currentUserName">{{request.user.username}}</span>
                 
-              </div>
             {% else %}
             
               
@@ -74,9 +76,10 @@
                 {# URL provided by django-allauth/account/urls.py #}
                 <a id="log-in-link" class="nav-link" href="{% url 'account_login' %}">{% trans "Sign In" %}</a>
               </li>
-              <div id="currentUserImage" style="background-img:url({% static 'images/globe.jpeg' %});">
-                
+              <div id="currentUserImage" style="background-image:url({% static 'images/globe.jpeg' %});">
               </div>
+            <span id="currentUserName">Unloggedin User</span>
+
             {% endif %}
           </ul>
         </div>

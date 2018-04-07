@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-from .models import picEntry
+from .models import picEntry, comment
 from django.utils import timezone
 from django.http import HttpResponse
 from django.http import JsonResponse
@@ -65,7 +65,6 @@ def handleMultipleUpload(request):
 
 @login_required
 def handlePicDelete(request):
-    #TODO Would need check on ownership of file
     picPK = request.POST.get('pk', None)
     if not picPK:
         return createJSONMsg(False, "Invalid call. Missing argument", 400)
@@ -89,11 +88,36 @@ def createJSONMsg(success, msg, status):
 def index2(request):
     return HttpResponse('<h1> Getting: django.urls.exceptions.NoReverseMatch: Reverse for "gallery" with no arguments not found. 1 pattern(s) tried:</h1>')
     
-
-@login_required
-def handleCommentAdd(request):
     
-    pass
+@login_required
+def handlePicCommentAction(request):
+    msg = request.POST.get('msg', None)
+    pk = request.POST.get('pk', None)
+
+    if msg and pk:
+        t = userIsAllowedToViewPic(request.user.id, pk)
+        if t[0]:
+            c = comment()
+            c.associatePic = t[1]
+            c.contents = msg #Possibly bad characters? Needs escaping?
+            c.user = request.user.id
+            c.save()
+            return createJSONMsg(True, "Comment Added", 200)
+        else:
+            return createJSONMsg(False, "User does not have permission to comment on this picture", 403)
+    else:
+        return createJSONMsg(False, "Bad request data", 400)
+
+#If pic public OR private and the user is the owner 
+def userIsAllowedToViewPic(userId, picPK):
+    try:
+        p = picEntry.objects.get(pk=picPK)
+        if p.public or p.owner == userId:
+            return (True,p) #TODO better checks based on userId
+    except picEntry.DoesNotExist:
+        pass
+    return (False, None)
+    
 
 @login_required
 def handlePicPrivacyChange(request):

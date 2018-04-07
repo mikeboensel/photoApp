@@ -59,9 +59,11 @@ if(dragAndDropForm){ //Only the user who owns the page is given this field
 
 //TODO out of place. Temporary. 
 
-function viewFullSize(fullSizeImgURL){
+function viewFullSize(fullSizeImgURL, pk){
     $("#fullScreenDisplay img")[0].src = fullSizeImgURL;
-    //TODO comments
+    //Store value. Can pull for any operations user may decide to do.
+    $('#fullScreenDisplay').prop('fullScreenedPK', pk); 
+
     $("#fullScreenDisplay").removeClass('hidden');
     $("#opacityOverlay").removeClass('hidden');  
 }

@@ -28,7 +28,7 @@
   
                     <!--User header-->
                     <div class="row" id="fullScreenUserHeaderSection">
-                        <img class="col-3 offset-1" src="/media/FoodTester.jpg">
+                        <div class="aUserImage col-3 offset-1" style="background-image:url({%static 'images/globe.jpeg' %})"></div>
                         <span class="col-2">User</span>
                     </div>
                 
@@ -47,15 +47,13 @@
                     
                     <!-- New comment-->    
                     <div class="row" id="fullScreenNewCommentsSection">
-                        <textarea id="newCommentTextArea" name="message" rows="10" cols="20" class="col-9">
-                            The cat was playing in the garden.
-                        </textarea>
+                        <textarea id="newCommentTextArea" name="message" rows="10" cols="20" class="col-9" placeholder="The cat runs quickly. The dog lies."></textarea>
                         
                         <div class="col-1">
                             <button>
                                 <span class="fas fa-thumbs-up"></span>
                             </button> 
-                            <button>
+                            <button id="commentSubmissionButton" onclick="handlePicCommentAction()">
                                 <span class="fas fa-comment"></span>
                             </button> 
                             
@@ -96,7 +94,7 @@
             <div class="col-md-4 imgContainer">
                 <div class="maintainsWidth" style="position:relative">
                     <!--Had an issue with putting position relative on parent -->
-                    <img src="{{p.thumbURL}}" alt="My image" class="img-responsive" onclick="viewFullSize('{{p.fullSizeURL}}')">
+                    <img src="{{p.thumbURL}}" alt="My image" class="img-responsive" onclick="viewFullSize('{{p.fullSizeURL}}', {{p.pk}})">
                     <div class="row imgControls ml-auto mr-auto justify-content-around">
                         {% if user.is_authenticated and isPageOwner %} <!-- Pic owner controls-->
                         <div class="col-md-4">

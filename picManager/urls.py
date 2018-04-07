@@ -8,6 +8,7 @@ urlpatterns = [
     re_path(r'^handlePicDelete', views.handlePicDelete, name='handlePicDelete'),
     re_path(r'^handlePicLike', views.handlePicLike, name='handlePicLike'),
     re_path(r'^handlePicPrivacyChange', views.handlePicPrivacyChange, name='handlePicPrivacyChange'),
+    re_path(r'^handlePicCommentAction', views.handlePicCommentAction, name='handlePicCommentAction'),
     re_path('(?P<userName>\w+)[/]?', views.index, name='gallery'),
 
 #     re_path('<str:userName>', views.index, name='gallery'),

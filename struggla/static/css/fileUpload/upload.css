@@ -1,36 +1,3 @@
-.imgContainer{
-    position:relative;
-    margin: 5 0;
-}
-
-.imgControls{
-    position: absolute;
-    top: 50%;
-    width: 92%;
-    background: #07080894;   
-}
-
-.imgControls.row{
-    padding:5;
-    opacity: 0;
-
-}
-
-.row.imgControls:hover{
-    opacity: 1;
-}
-
-.row.imgControls  .btn-default{
-    background: radial-gradient(#ffffff, #969696, #484848);
-    border: none;
-}
-
-.row.imgControls  .btn-default:hover{
-    border: 2px solid white;
-}
-
-
-
 /*From https://css-tricks.com/drag-and-drop-file-uploading/ */
 
 			body

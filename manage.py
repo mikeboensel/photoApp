@@ -3,6 +3,7 @@ import os
 import sys
 
 if __name__ == '__main__':
+    #sets local.py as our settings
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.local')
 
     try:

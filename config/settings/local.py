@@ -35,6 +35,10 @@ TEMPLATES[0]['OPTIONS']['debug'] = DEBUG  # noqa F405
 EMAIL_HOST = 'localhost'
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-port
 EMAIL_PORT = 1025
+# Writes to console
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+# EMAIL_FILE_PATH = '/tmp/app-messages' # change this to a proper location
 
 # django-debug-toolbar
 # ------------------------------------------------------------------------------

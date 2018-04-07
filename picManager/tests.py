@@ -26,6 +26,10 @@ class ViewTests(TestCase):
     def test_picUpload_resolves_view(self):
         view = resolve('/gallery/handleMultipleUpload')
         self.assertEquals(view.func, handleMultipleUpload)    
+
+    def test_commmentAction_resolves_view(self):
+        view = resolve('/gallery/handlePicCommentAction')
+        self.assertEquals(view.func, handlePicCommentAction)   
     
     def create_pic(self):  # TODO WTF? What does this one even do?
         response = self.client.get('/media/ChessRobot.jpg')
@@ -146,6 +150,51 @@ class DeleteTests(TestCase):
         self.assertEqual(responseJSON.status_code, 400)
         self.data_unchanged()
 
+#Comment tests (don't want to repeat setup)
+
+    # We want to test permissions. Only need to change logged in user and PK   
+    def check_legit_comment_case(self, pk):
+        msg = "New comment"
+        data = {'pk':pk, 'msg':msg}
+        responseJSON = self.client.post('/gallery/handlePicCommentAction', data=data)
+        
+        self.assertEqual(responseJSON.status_code, 200)
+        c = comment.objects.get(associatePic = pk)
+        self.assertEqual(c.contents, msg)
+    
+
+    def test_user_comments_on_own_public_pic(self):
+        self.client.login(username='aGuy', password='abc')
+        self.check_legit_comment_case(1)
+    
+    def test_user_comments_on_own_private_pic(self):
+        self.client.login(username='aGuy', password='abc')
+        self.check_legit_comment_case(2)
+    
+    
+    def test_userA_comments_on_userB_public_pic(self):
+        self.client.login(username='aGuy2', password='abc')
+        self.check_legit_comment_case(1)
+
+    def test_nonloggedin_user_comments(self):
+        responseJSON = self.client.post('/gallery/handlePicCommentAction')
+        self.assertEqual(responseJSON.status_code, 302)
+
+    #expected client login prior. Permissions check
+    def check_bad_comment_case(self, pk):
+        responseJSON = self.client.post('/gallery/handlePicCommentAction', data = {'msg':"w/e", "pk":pk})
+        
+        self.assertEqual(responseJSON.status_code, 403) #forbidden
+        self.assertEqual(0, len(comment.objects.all())) #no comment created
+
+    def test_userA_comments_on_userB_private_pic(self):
+        self.client.login(username='aGuy2', password='abc')
+        self.check_bad_comment_case(2)
+        
+    def test_comment_on_nonexistent_pic(self):
+        self.client.login(username='aGuy2', password='abc')
+        self.check_bad_comment_case(99)
+        
 class AnimalTests(TestCase):
     @classmethod
     def setUpTestData(cls):
