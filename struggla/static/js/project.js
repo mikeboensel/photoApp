@@ -89,7 +89,7 @@ function handlePicCommentAction(){
             $('#commentSubmissionButton').prop('disabled', false);
 
             //append onto comments
-            var commentItem= '<li class="commentItem"><span class="commentUserName">' + $('#currentUserName').val() + 
+            var commentItem= '<li class="commentItem"><span class="commentUserName">' + $('#currentUserName').text() + 
             '</span><span class="commentContents">'+ anything.msg +'</span></li>';                                
             
             $('#commentList > li:last-child').after(commentItem);

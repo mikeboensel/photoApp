@@ -1,0 +1,8 @@
+<ul id="commentList">
+    {% for c in comments %}
+    <li class="commentItem">
+        <span class="commentUserName">{{c.user.username}}</span>
+        <span class="commentContents">{{c.contents}}</span>
+    </li>
+    {% endfor %}
+</ul>

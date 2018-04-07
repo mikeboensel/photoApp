@@ -4,6 +4,7 @@ from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
 import hashlib
+from struggla.users.models import User as AuthUser
 
 
 class picEntry(models.Model):
@@ -13,7 +14,7 @@ class picEntry(models.Model):
         if not self.sha256:
             hasher = hashlib.sha256()
             BLOCKSIZE = 65536
-    #         with self.pic._get_file() as afile:
+
             afile = self.pic._get_file()
             buf = afile.read(BLOCKSIZE)
             while len(buf) > 0:
@@ -26,7 +27,10 @@ class picEntry(models.Model):
     pic = models.ImageField()
     thumbnail = models.ImageField(default=None, blank=True, null=True)
     likes = models.PositiveIntegerField(default=0)
-    owner = models.PositiveIntegerField()
+    owner = models.ForeignKey(
+        AuthUser,
+        on_delete=models.CASCADE,
+    )
     
     #Everything starts off private. 
     public = models.BooleanField(default=False)
@@ -39,9 +43,6 @@ class picEntry(models.Model):
     upload_date = models.DateTimeField(auto_now_add=True)
 # 	https://stackoverflow.com/questions/16853815/how-to-generate-hash-for-django-model
     sha256 = models.CharField(max_length=64)  # , default=_createHash)
-
-#     def createPicEntry(self, p):
-#         self.pic = p
 
     def notDupe(self):
         if not self.sha256:
@@ -60,12 +61,13 @@ class picEntry(models.Model):
             raise Exception('Could not create thumbnail for {0} - is the file type valid?'.format(self.pic.name))
         super(picEntry, self).save(*args, **kwargs)
 
+    size = (300, 300)
+
 # https://stackoverflow.com/questions/23922289/django-pil-save-thumbnail-version-right-when-image-is-uploaded?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
     def make_thumbnail(self):
-        size = (128, 128)
 
         with Image.open(self.pic._get_file()) as image:
-            image.thumbnail(size, Image.ANTIALIAS)
+            image.thumbnail(picEntry.size, Image.ANTIALIAS)
     
             thumb_name, thumb_extension = os.path.splitext(self.pic.name)
             thumb_extension = thumb_extension.lower()
@@ -98,7 +100,11 @@ class comment(models.Model):
         on_delete=models.CASCADE,
     )
     
-    user = models.PositiveIntegerField()
+    user = models.ForeignKey(
+        AuthUser,
+        on_delete=models.CASCADE,
+    ) 
+    
     contents = models.CharField(max_length=500)
     upload_date = models.DateTimeField(auto_now_add=True)
     edit_date = models.DateTimeField(default=None, blank=True, null=True)

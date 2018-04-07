@@ -30,6 +30,13 @@ class ViewTests(TestCase):
     def test_commmentAction_resolves_view(self):
         view = resolve('/gallery/handlePicCommentAction')
         self.assertEquals(view.func, handlePicCommentAction)   
+        
+    def test_get_comment_resolves_view(self):
+        view = resolve('/gallery/getPicComments/?pic=1')
+        print(view)
+        print(view.func)
+        self.assertEquals(view.func, getPicComments) 
+        
     
     def create_pic(self):  # TODO WTF? What does this one even do?
         response = self.client.get('/media/ChessRobot.jpg')
@@ -39,13 +46,13 @@ class ViewTests(TestCase):
 class VisibilityPermissionTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
+        userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
         User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
         pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
         pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
         
-        picEntry.objects.create(pic=pic_public, owner=1, public=True, private=False)
-        picEntry.objects.create(pic=pic_private, owner=1)
+        picEntry.objects.create(pic=pic_public, owner=userA, public=True, private=False)
+        picEntry.objects.create(pic=pic_private, owner=userA)
              
     @classmethod
     def tearDownClass(cls):
@@ -90,13 +97,13 @@ class VisibilityPermissionTests(TestCase):
 
 class DeleteTests(TestCase):
     def setUp(self):
-        User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
+        userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
         User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
         pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
         pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
         
-        picEntry.objects.create(pic=pic_public, owner=1, public=True, private=False)
-        picEntry.objects.create(pic=pic_private, owner=1)
+        picEntry.objects.create(pic=pic_public, owner=userA, public=True, private=False)
+        picEntry.objects.create(pic=pic_private, owner=userA)
         
     def tearDown(self):
         for p in picEntry.objects.all():
@@ -194,6 +201,11 @@ class DeleteTests(TestCase):
     def test_comment_on_nonexistent_pic(self):
         self.client.login(username='aGuy2', password='abc')
         self.check_bad_comment_case(99)
+        
+        
+    def test_get_comment_list(self):
+        response = self.client.get('/gallery/getPicComments/?pic=1')
+        print(response)
         
 class AnimalTests(TestCase):
     @classmethod

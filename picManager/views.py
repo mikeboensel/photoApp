@@ -12,6 +12,7 @@ import os, sys
 from PIL import Image
 from struggla.users.models import User 
 from _tkinter import create
+from django.http.response import Http404
 
 def index(request, userName='admin'):
     
@@ -51,8 +52,8 @@ def handleMultipleUpload(request):
         addedFiles = []
         for file in files:
             p = picEntry(pic = file)
-            p.owner = request.user.id
-            p.title = 'filler'
+            p.owner = request.user
+            p.title = ''
 #             p.pic.save(file.name, file, save=False) #perhaps necessary, but think we can do a simpler assignment
             
             if p.notDupe():
@@ -71,11 +72,11 @@ def handlePicDelete(request):
        
     try:
         p = picEntry.objects.get(pk=picPK)
-        if p.owner == request.user.id:
+        if p.owner == request.user:
             p.delete() #TODO doesn't handle the actual photo files
             return createJSONMsg(True, 'Successfully delete pic with pk' + picPK, 200)
         else:
-            return createJSONMsg(False, "Invalid: Attempt by User {0} to delete photo {1} not belonging to them".format(request.user.id, picPK), 403)
+            return createJSONMsg(False, "Invalid: Attempt by User {0} to delete photo {1} not belonging to them".format(request.user, picPK), 403)
 
     except picEntry.DoesNotExist:
         return createJSONMsg(False, "Invalid call. Bad argument", 400)
@@ -95,12 +96,12 @@ def handlePicCommentAction(request):
     pk = request.POST.get('pk', None)
 
     if msg and pk:
-        t = userIsAllowedToViewPic(request.user.id, pk)
+        t = userIsAllowedToViewPic(request.user, pk)
         if t[0]:
             c = comment()
             c.associatePic = t[1]
             c.contents = msg #Possibly bad characters? Needs escaping?
-            c.user = request.user.id
+            c.user = request.user
             c.save()
             return createJSONMsg(True, "Comment Added", 200)
         else:
@@ -109,15 +110,22 @@ def handlePicCommentAction(request):
         return createJSONMsg(False, "Bad request data", 400)
 
 #If pic public OR private and the user is the owner 
-def userIsAllowedToViewPic(userId, picPK):
+def userIsAllowedToViewPic(submittingUser, picPK):
     try:
         p = picEntry.objects.get(pk=picPK)
-        if p.public or p.owner == userId:
-            return (True,p) #TODO better checks based on userId
+        if p.public or p.owner == submittingUser:
+            return (True,p) 
     except picEntry.DoesNotExist:
         pass
     return (False, None)
+
+def getPicComments(request):
+    pk = request.GET.get('pic', None)
+    if not pk:
+        return Http404()
     
+    comments = comment.objects.filter(associatePic=pk).order_by('-upload_date')
+    return render(request, 'pages/commentList.html', {'comments':comments})
 
 @login_required
 def handlePicPrivacyChange(request):
