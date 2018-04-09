@@ -56,9 +56,11 @@ class picEntry(models.Model):
 
     def save(self, *args, **kwargs):
         self._createHash()
-        if not self.make_thumbnail():
-            # set to a default thumbnail
-            raise Exception('Could not create thumbnail for {0} - is the file type valid?'.format(self.pic.name))
+        #Only expect to use this object once. So no changing of source image. So once we've generated the thumbnail, we're good
+        if not self.thumbnail: 
+            if not self.make_thumbnail():
+                # set to a default thumbnail
+                raise Exception('Could not create thumbnail for {0} - is the file type valid?'.format(self.pic.name))
         super(picEntry, self).save(*args, **kwargs)
 
     size = (300, 300)

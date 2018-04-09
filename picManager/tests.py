@@ -9,7 +9,12 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from struggla.users.models import User
 import json
 
-class ViewTests(TestCase):
+def universalTearDown():
+    for p in picEntry.objects.all():
+        p.pic.delete(save=False)
+        p.thumbnail.delete(save=False)
+
+class ViewResolutions(TestCase):
     
     def test_privacyChange_resolves_view(self):
         view = resolve('/gallery/handlePicPrivacyChange')
@@ -48,7 +53,7 @@ class ViewTests(TestCase):
         self.assertEquals(response.status_code, 200)        
 
 
-class VisibilityPermissionTests(TestCase):
+class PictureVisibilityPermission(TestCase):
     @classmethod
     def setUpTestData(cls):
         userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
@@ -61,9 +66,7 @@ class VisibilityPermissionTests(TestCase):
              
     @classmethod
     def tearDownClass(cls):
-        for p in picEntry.objects.all():
-            p.pic.delete(save=False)
-            p.thumbnail.delete(save=False)
+        universalTearDown()
     
     def hit_invalid_page(self):
         return self.client.get('/gallery/notAGuy')
@@ -100,7 +103,80 @@ class VisibilityPermissionTests(TestCase):
         self.assertNotContains(response, 'dropzoneContainer')  # Can't upload pics
 
 
-class DeleteTests(TestCase):
+class DeleteAction(TestCase):
+    def setUp(self):
+        userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
+        userB = User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
+        pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
+        pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
+        
+        pEntry = picEntry.objects.create(pic=pic_public, owner=userA, public=True, private=False)
+        #TODO hacky. Necessary because we delete the PicEntry below. Don't trash files by default. Want to clean up for test cases
+        self.pic = pEntry.pic
+        self.pic_thumb = pEntry.thumbnail
+        picEntry.objects.create(pic=pic_private, owner=userA) 
+    
+    #TODO super hacky. Refactor
+    def safeDelete(self, file):
+        try:
+            file._get_file()
+            file.delete()
+        except (FileNotFoundError, ValueError):
+            pass
+    
+    def tearDown(self):
+        universalTearDown()
+        self.safeDelete(self.pic)
+        self.safeDelete(self.pic_thumb)    
+        
+    
+    __url = '/gallery/handlePicDelete'
+    
+    def data_unchanged(self):
+        self.assertEqual(len(picEntry.objects.all()), 2)  # Both pics should still exist
+        # TODO better tests on it still being there
+
+    def test_nonauthenticated_user_delete_req(self):
+        response = self.client.post(DeleteAction.__url)
+        self.assertEqual(response.status_code, 302)  # expect redirect to login
+
+    def test_authenticated_user_nonowner_delete_req(self):
+        self.client.login(username='aGuy2', password='abc')
+        data = {'pk':1}
+        response = self.client.post(DeleteAction.__url, data=data)
+        
+        self.assertEqual(response.status_code, 403)  # Can't delete another user's pics
+        self.data_unchanged()
+        
+    def test_authenticated_user_owner_delete_req(self):
+        self.client.login(username='aGuy', password='abc')
+        data = {'pk':1}
+        responseJSON = self.client.post(DeleteAction.__url, data=data)
+        self.assertEqual(responseJSON.status_code, 200)
+        #TODO assert item deleted
+        try:
+            picEntry.objects.get(pk=1)
+            self.fail("Deleted element still exists in DB!!!")
+        except picEntry.DoesNotExist:
+            pass
+         
+    def test_authenticated_user_bad_request(self):
+        self.client.login(username='aGuy', password='abc')
+        data = {'pk':88} #Bad picEntry pk
+        responseJSON = self.client.post(DeleteAction.__url, data=data)
+        
+        self.assertEqual(responseJSON.status_code, 400)
+        self.data_unchanged()
+        
+    def test_authenticated_user_bad_request2(self):
+        self.client.login(username='aGuy', password='abc')
+        responseJSON = self.client.post(DeleteAction.__url) #No picEntry arg
+        
+        self.assertEqual(responseJSON.status_code, 400)
+        self.data_unchanged()
+
+class CommentCreation(TestCase):
+#Comment tests (don't want to repeat setup)
     def setUp(self):
         userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
         userB = User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
@@ -111,58 +187,7 @@ class DeleteTests(TestCase):
         picEntry.objects.create(pic=pic_private, owner=userA) 
         
     def tearDown(self):
-        for p in picEntry.objects.all():
-            p.pic.delete(save=False)
-            p.thumbnail.delete(save=False) 
-    
-    __url = '/gallery/handlePicDelete'
-    
-    def data_unchanged(self):
-        self.assertEqual(len(picEntry.objects.all()), 2)  # Both pics should still exist
-        # TODO better tests on it still being there
-
-    
-    def test_nonauthenticated_user_delete_req(self):
-        response = self.client.post(DeleteTests.__url)
-        self.assertEqual(response.status_code, 302)  # expect redirect to login
-
-    def test_authenticated_user_nonowner_delete_req(self):
-        self.client.login(username='aGuy2', password='abc')
-        data = {'pk':1}
-        response = self.client.post(DeleteTests.__url, data=data)
-        
-        self.assertEqual(response.status_code, 403)  # Can't delete another user's pics
-        self.data_unchanged()
-        
-    def test_authenticated_user_owner_delete_req(self):
-        self.client.login(username='aGuy', password='abc')
-        data = {'pk':1}
-        responseJSON = self.client.post(DeleteTests.__url, data=data)
-        self.assertEqual(responseJSON.status_code, 200)
-        #TODO assert item deleted
-        try:
-            picEntry.objects.get(pk=1)
-            self.fail("Deleted element still exists in DB!!!")
-        except picEntry.DoesNotExist:
-            pass
-
-            
-    def test_authenticated_user_bad_request(self):
-        self.client.login(username='aGuy', password='abc')
-        data = {'pk':88} #Bad picEntry pk
-        responseJSON = self.client.post(DeleteTests.__url, data=data)
-        
-        self.assertEqual(responseJSON.status_code, 400)
-        self.data_unchanged()
-        
-    def test_authenticated_user_bad_request2(self):
-        self.client.login(username='aGuy', password='abc')
-        responseJSON = self.client.post(DeleteTests.__url) #No picEntry arg
-        
-        self.assertEqual(responseJSON.status_code, 400)
-        self.data_unchanged()
-
-#Comment tests (don't want to repeat setup)
+        universalTearDown()
 
     # We want to test permissions. Only need to change logged in user and PK   
     def check_legit_comment_case(self, pk):
@@ -223,9 +248,7 @@ class CommentRetrieval(TestCase):
         comment.objects.create(associatePic=pic_entry_public, user=userA, contents="Good to see you")
     
     def tearDown(self):
-        for p in picEntry.objects.all():
-            p.pic.delete(save=False)
-            p.thumbnail.delete(save=False) 
+        universalTearDown()
 
     def test_get_empty_comment_list(self):
         response = self.client.get('/gallery/getPicComments?pic=2')
@@ -258,9 +281,7 @@ class LikeOperations(TestCase):
         pictureLikes.objects.create(pic=pic_entry_public,user=userB)
          
     def tearDown(self):
-        for p in picEntry.objects.all():
-            p.pic.delete(save=False)
-            p.thumbnail.delete(save=False) 
+        universalTearDown()
     
     def test_getting_prior_like(self):
         self.client.login(username='aGuy2', password='abc')
@@ -282,25 +303,11 @@ class LikeOperations(TestCase):
         #Trying to get private photo details
         self.assertEqual(responseJSON.status_code, 403)
         
-#     def test_create_like(self):
-#         p = picEntry.objects.get(pk=3)
-#         self.assertEqual(p.likes, 0)
-#         self.client.login(username='aGuy2', password='abc')
-#         responseJSON = self.client.post('/gallery/handlePicLikeUpdate', {'pk':3})
-#         self.assertEqual(responseJSON.status_code, 200)
-#         p = picEntry.objects.get(pk=3)
-#         self.assertEqual(p.likes, 1)
-        
-class AnimalTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        animal.objects.create(name="Gorilla", type="Mammal", number_we_have=1)
-
-    def setup(self):
-        animal.objects.create(name="Gorilla", type="Mammal", number_we_have=1)
-    
-#     def test(self):
-#         print(animal.objects.get(name="Gorilla").type)
-
-
-    
+    def test_create_like(self):
+        p = picEntry.objects.get(pk=3)
+        self.assertEqual(p.likes, 0)
+        self.client.login(username='aGuy2', password='abc')
+        responseJSON = self.client.post('/gallery/handlePicLikeUpdate', {'pk':3})
+        self.assertEqual(responseJSON.status_code, 200)
+        p = picEntry.objects.get(pk=3)
+        self.assertEqual(p.likes, 1)   
