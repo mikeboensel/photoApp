@@ -62,17 +62,37 @@ class ViewResolutions(TestCase):
         response = self.client.get('/media/ChessRobot.jpg')
         self.assertEquals(response.status_code, 200)        
 
+"""For a lot of our testing this pretty simple baseline handles things"""
+def baselineSetup():
+    users = createUsers()
+    pics = createPictures()
+    picEntries = createPicEntries(users,pics)
+    return {'users': users, "pics": pics, 'picEntries':picEntries}
+# (users, pics, picEntries)
+    
+def createUsers():
+    userA = User.objects.create_user(username='aGuy1', email='em@gmail.com', password='abc')
+    userB = User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
+    userC = User.objects.create_user(username='aGuy3', email='em@gmail.com', password='abc')
+    return (userA, userB, userC)
 
+def createPictures():
+    pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
+    pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
+    return (pic_public, pic_private)
+
+def createPicEntries(users, pics):
+    public = picEntry.objects.create(pic=pics[0], owner=users[0], public=True, private=False)
+    private = picEntry.objects.create(pic=pics[1], owner=users[0])
+    return (public, private) 
+
+def loginUser(instance, number):
+    instance.client.login(username='aGuy' + str(number), password='abc')
+    
 class PictureVisibilityPermission(TestCase):
     @classmethod
     def setUpTestData(cls):
-        userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
-        User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
-        pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
-        pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
-        
-        picEntry.objects.create(pic=pic_public, owner=userA, public=True, private=False)
-        picEntry.objects.create(pic=pic_private, owner=userA)
+        baselineSetup()
              
     @classmethod
     def tearDownClass(cls):
@@ -86,7 +106,7 @@ class PictureVisibilityPermission(TestCase):
         self.assertEqual(response.status_code, 404)
         
     def hit_valid_page(self):
-        return self.client.get('/gallery/aGuy') 
+        return self.client.get('/gallery/aGuy1') 
 
     def test_valid_user_page_requested_as_unauthenticated(self):
         response = self.hit_valid_page()
@@ -96,7 +116,7 @@ class PictureVisibilityPermission(TestCase):
         self.assertNotContains(response, 'dropzoneContainer')  # Can't upload pics
 
     def test_valid_user_page_requested_as_that_user(self):
-        self.client.login(username='aGuy', password='abc')
+        loginUser(self, 1)
         response = self.hit_valid_page()
         
         self.assertContains(response, '_test_public')
@@ -105,7 +125,7 @@ class PictureVisibilityPermission(TestCase):
         
 
     def test_valid_user_page_requested_as_different_user(self):
-        self.client.login(username='aGuy2', password='abc')
+        loginUser(self, 2)
         response = self.hit_valid_page()
         
         self.assertContains(response, '_test_public')
@@ -115,16 +135,14 @@ class PictureVisibilityPermission(TestCase):
 
 class DeleteAction(TestCase):
     def setUp(self):
-        userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
-        userB = User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
-        pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
-        pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
-        
-        pEntry = picEntry.objects.create(pic=pic_public, owner=userA, public=True, private=False)
+        users = createUsers()
+        pics = createPictures()
+                
+        pEntry = picEntry.objects.create(pic=pics[0], owner=users[0], public=True, private=False)
         # TODO hacky. Necessary because we delete the PicEntry below. Don't trash files by default. Want to clean up for test cases
         self.pic = pEntry.pic
         self.pic_thumb = pEntry.thumbnail
-        picEntry.objects.create(pic=pic_private, owner=userA) 
+        picEntry.objects.create(pic=pics[1], owner=users[0]) 
     
     # TODO super hacky. Refactor
     def safeDelete(self, file):
@@ -151,7 +169,7 @@ class DeleteAction(TestCase):
         self.assertEqual(response.status_code, 302)  # expect redirect to login
 
     def test_authenticated_user_nonowner_delete_req(self):
-        self.client.login(username='aGuy2', password='abc')
+        loginUser(self, 2)
         data = {'pk':1}
         response = self.client.post(DeleteAction.__url, data=data)
         
@@ -159,7 +177,7 @@ class DeleteAction(TestCase):
         self.data_unchanged()
         
     def test_authenticated_user_owner_delete_req(self):
-        self.client.login(username='aGuy', password='abc')
+        loginUser(self, 1)
         data = {'pk':1}
         responseJSON = self.client.post(DeleteAction.__url, data=data)
 
@@ -171,7 +189,7 @@ class DeleteAction(TestCase):
             pass
          
     def test_authenticated_user_bad_request(self):
-        self.client.login(username='aGuy', password='abc')
+        loginUser(self, 1)
         data = {'pk':88}  # Bad picEntry pk
         responseJSON = self.client.post(DeleteAction.__url, data=data)
         
@@ -179,22 +197,15 @@ class DeleteAction(TestCase):
         self.data_unchanged()
         
     def test_authenticated_user_bad_request2(self):
-        self.client.login(username='aGuy', password='abc')
+        loginUser(self, 1)
         responseJSON = self.client.post(DeleteAction.__url)  # No picEntry arg
         
         self.assertEqual(responseJSON.status_code, 400)
         self.data_unchanged()
 
 class CommentCreation(TestCase):
-# Comment tests (don't want to repeat setup)
     def setUp(self):
-        userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
-        userB = User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
-        pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
-        pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
-        
-        picEntry.objects.create(pic=pic_public, owner=userA, public=True, private=False)
-        picEntry.objects.create(pic=pic_private, owner=userA) 
+        baselineSetup()
         
     def tearDown(self):
         universalTearDown()
@@ -213,16 +224,16 @@ class CommentCreation(TestCase):
     
 
     def test_user_comments_on_own_public_pic(self):
-        self.client.login(username='aGuy', password='abc')
+        loginUser(self, 1)
         self.check_legit_comment_case(1)
     
     def test_user_comments_on_own_private_pic(self):
-        self.client.login(username='aGuy', password='abc')
+        loginUser(self, 1)
         self.check_legit_comment_case(2)
     
     
     def test_userA_comments_on_userB_public_pic(self):
-        self.client.login(username='aGuy2', password='abc')
+        loginUser(self, 2)
         self.check_legit_comment_case(1)
 
     def test_nonloggedin_user_comments(self):
@@ -237,41 +248,31 @@ class CommentCreation(TestCase):
         self.assertEqual(0, len(comment.objects.all()))  # no comment created
 
     def test_userA_comments_on_userB_private_pic(self):
-        self.client.login(username='aGuy2', password='abc')
+        loginUser(self, 2)
         self.check_bad_comment_case(2)
         
     def test_comment_on_nonexistent_pic(self):
-        self.client.login(username='aGuy2', password='abc')
+        loginUser(self, 2)
         self.check_bad_comment_case(99)
         
-
 class CommentRetrieval(TestCase):
     def setUp(self):
-        userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
-        userB = User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
-        userC = User.objects.create_user(username='aGuy3', email='em@gmail.com', password='abc')
-
-        
-        pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
-        pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
-        
-        pic_entry_public = picEntry.objects.create(pic=pic_public, owner=userA, public=True, private=False)
-        picEntry.objects.create(pic=pic_private, owner=userA) 
+        tup = baselineSetup()
         
         # no comments on private pic, 2 on public
-        comment.objects.create(associatePic=pic_entry_public, user=userB, contents="HideyHoo!")
-        comment.objects.create(associatePic=pic_entry_public, user=userA, contents="Good to see you")
+        comment.objects.create(associatePic=tup['picEntries'][0], user=tup['users'][1], contents="HideyHoo!")
+        comment.objects.create(associatePic=tup['picEntries'][0], user=tup['users'][0], contents="Good to see you")
     
     def test_comment_delete_valid_user_comment_owner(self):
-        self.client.login(username='aGuy2', password='abc')
+        loginUser(self, 2)
         self.delete_one_assert_rest_still_remain(1,2,1)
             
     def test_comment_delete_valid_user_pic_owner(self):
-        self.client.login(username='aGuy', password='abc')
+        loginUser(self, 1)
         self.delete_one_assert_rest_still_remain(1,2,1)
 
     def test_comment_delete_valid_user_comment_and_pic_owner(self):
-        self.client.login(username='aGuy', password='abc')
+        loginUser(self, 1)
         self.delete_one_assert_rest_still_remain(2,1,1)
     
     def delete_one_assert_rest_still_remain(self, expectedDeletedPK, expectedRemainingPK,  totalRemaining):
@@ -285,7 +286,7 @@ class CommentRetrieval(TestCase):
             self.assertEqual(comment.objects.count(), totalRemaining) # and that its the only one
     
     def test_comment_delete_invalid_user(self):
-        self.client.login(username='aGuy3', password='abc')
+        loginUser(self, 3)
         response = self.client.post("/gallery/handlePicCommentDelete", data={"commentPK":1})
         
         self.assertEqual(response.status_code, 403)
@@ -298,7 +299,7 @@ class CommentRetrieval(TestCase):
         self.check_data_unchanged()
     
     def test_comment_delete_non_existent_comment(self):
-        self.client.login(username='aGuy', password='abc')
+        loginUser(self, 1)
         response = self.client.post("/gallery/handlePicCommentDelete", data={"commentPK":99})
 
         self.assertEqual(response.status_code, 404)
@@ -310,7 +311,7 @@ class CommentRetrieval(TestCase):
     ##############
     
     def test_comment_edit_valid_user_comment_owner(self):
-        self.client.login(username='aGuy2', password='abc')
+        loginUser(self, 2)
         data = {"commentPK":1, "commentMsg":"New stuff"}
         response = self.client.post("/gallery/handlePicCommentEdit", data=data)
         
@@ -353,7 +354,7 @@ class CommentRetrieval(TestCase):
 #         self.check_edit_occurred(data)
     
     def test_comment_edit_invalid_user(self): #neither comment owner or pic owner
-        self.client.login(username='aGuy3', password='abc')
+        loginUser(self, 3)
         
         data = {"commentPK":1, "commentMsg":"New stuff"}
         response = self.client.post("/gallery/handlePicCommentEdit", data=data)
@@ -398,52 +399,51 @@ class CommentRetrieval(TestCase):
         self.assertContains(response, "Good to see you")
         
 class LikeOperations(TestCase):
+        
     def setUp(self):
-        userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
-        userB = User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
-
+        users = createUsers()
+        
         # pk 1,2,3 respectively
         pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
         pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
         pic_public2 = SimpleUploadedFile(name='_test_public2.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
 
-        pic_entry_public = picEntry.objects.create(pic=pic_public, owner=userA, public=True, private=False)
-        picEntry.objects.create(pic=pic_private, owner=userB)
-        picEntry.objects.create(pic=pic_public2, owner=userA, public=True, private=False)
-        
-        pictureLikes.objects.create(pic=pic_entry_public, user=userB)
+        pic_entry_public = picEntry.objects.create(pic=pic_public, owner=users[0], public=True, private=False)
+        picEntry.objects.create(pic=pic_private, owner=users[1])
+        picEntry.objects.create(pic=pic_public2, owner=users[0], public=True, private=False)
          
+        pictureLikes.objects.create(pic=pic_entry_public, user=users[1]) 
+
     def tearDown(self):
         universalTearDown()
     
     def test_getting_prior_like(self):
-        self.client.login(username='aGuy2', password='abc')
-        responseJSON = self.client.get('/gallery/handlePicLikeRetrieval?pk=1')  # , {'pk':1}
+        loginUser(self, 2)
+        responseJSON = self.client.get('/gallery/handlePicLikeRetrieval?pk=1')
         self.assertEqual(responseJSON.status_code, 200)
         j = json.loads(responseJSON.content)
         self.assertTrue(j['data']['isLiked'])
 
     def test_getting_no_prior_like(self):
-        self.client.login(username='aGuy2', password='abc')
-        responseJSON = self.client.get('/gallery/handlePicLikeRetrieval?pk=2')  # , {'pk':2}
+        loginUser(self, 2)
+        responseJSON = self.client.get('/gallery/handlePicLikeRetrieval?pk=2')
         self.assertEqual(responseJSON.status_code, 200)
         j = json.loads(responseJSON.content)
         self.assertFalse(j['data']['isLiked'])
         
     def test_permissions(self):
-        self.client.login(username='aGuy', password='abc')
-        responseJSON = self.client.get('/gallery/handlePicLikeRetrieval?pk=2')  # , {'pk':2}
+        loginUser(self, 1)
+        responseJSON = self.client.get('/gallery/handlePicLikeRetrieval?pk=2')
         # Trying to get private photo details
         self.assertEqual(responseJSON.status_code, 403)
         
     def test_create_like(self):
         p = picEntry.objects.get(pk=3)
         self.assertEqual(p.likes, 0)
-        self.client.login(username='aGuy2', password='abc')
+        
+        loginUser(self, 2)
+        
         responseJSON = self.client.post('/gallery/handlePicLikeUpdate', {'pk':3})
         self.assertEqual(responseJSON.status_code, 200)
         p = picEntry.objects.get(pk=3)
         self.assertEqual(p.likes, 1)   
-        
-    
-
