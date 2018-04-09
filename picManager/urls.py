@@ -6,7 +6,8 @@ from django.views.generic import TemplateView
 urlpatterns = [
     re_path(r'^handleMultipleUpload', views.handleMultipleUpload, name='addPics'),
     re_path(r'^handlePicDelete', views.handlePicDelete, name='handlePicDelete'),
-    re_path(r'^handlePicLike', views.handlePicLike, name='handlePicLike'),
+    re_path(r'^handlePicLikeUpdate', views.handlePicLikeUpdate, name='handlePicLikeUpdate'),
+    re_path(r'^handlePicLikeRetrieval', views.handlePicLikeRetrieval, name='handlePicLikeRetrieval'),
     re_path(r'^handlePicPrivacyChange', views.handlePicPrivacyChange, name='handlePicPrivacyChange'),
     re_path(r'^handlePicCommentAction', views.handlePicCommentAction, name='handlePicCommentAction'),
     re_path(r'^getPicComments', views.getPicComments, name='getPicComments'),

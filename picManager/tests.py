@@ -1,9 +1,13 @@
 from django.urls import resolve, reverse
 from django.test import TestCase
 from .views import handleMultipleUpload
-from picManager.views import *
-from picManager.models import picEntry, animal
+from picManager.views import handlePicLikeRetrieval, handlePicLikeUpdate,\
+    handlePicPrivacyChange, handlePicDelete, index, getPicComments,\
+    handlePicCommentAction
+from picManager.models import picEntry, animal, comment, pictureLikes
 from django.core.files.uploadedfile import SimpleUploadedFile
+from struggla.users.models import User
+import json
 
 class ViewTests(TestCase):
     
@@ -12,8 +16,12 @@ class ViewTests(TestCase):
         self.assertEquals(view.func, handlePicPrivacyChange)
 
     def test_picLike_resolves_view(self):
-        view = resolve('/gallery/handlePicLike')
-        self.assertEquals(view.func, handlePicLike)
+        view = resolve('/gallery/handlePicLikeRetrieval')
+        self.assertEquals(view.func, handlePicLikeRetrieval)
+    
+    def test_picLike_resolves_view2(self):
+        view = resolve('/gallery/handlePicLikeUpdate')
+        self.assertEquals(view.func, handlePicLikeUpdate)
         
     def test_picDelete_resolves_view(self):
         view = resolve('/gallery/handlePicDelete')
@@ -233,7 +241,55 @@ class CommentRetrieval(TestCase):
         self.assertContains(response,'HideyHoo!')
         self.assertContains(response, "Good to see you")
         
+class LikeOperations(TestCase):
+    def setUp(self):
+        userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
+        userB = User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
 
+        #pk 1,2,3 respectively
+        pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
+        pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
+        pic_public2 = SimpleUploadedFile(name='_test_public2.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
+
+        pic_entry_public = picEntry.objects.create(pic=pic_public, owner=userA, public=True, private=False)
+        picEntry.objects.create(pic=pic_private, owner=userB)
+        picEntry.objects.create(pic=pic_public2, owner=userA, public=True, private=False)
+        
+        pictureLikes.objects.create(pic=pic_entry_public,user=userB)
+         
+    def tearDown(self):
+        for p in picEntry.objects.all():
+            p.pic.delete(save=False)
+            p.thumbnail.delete(save=False) 
+    
+    def test_getting_prior_like(self):
+        self.client.login(username='aGuy2', password='abc')
+        responseJSON = self.client.get('/gallery/handlePicLikeRetrieval?pk=1') #, {'pk':1}
+        self.assertEqual(responseJSON.status_code, 200)
+        j = json.loads(responseJSON.content)
+        self.assertTrue(j['data']['isLiked'])
+
+    def test_getting_no_prior_like(self):
+        self.client.login(username='aGuy2', password='abc')
+        responseJSON = self.client.get('/gallery/handlePicLikeRetrieval?pk=2') #, {'pk':2}
+        self.assertEqual(responseJSON.status_code, 200)
+        j = json.loads(responseJSON.content)
+        self.assertFalse(j['data']['isLiked'])
+        
+    def test_permissions(self):
+        self.client.login(username='aGuy', password='abc')
+        responseJSON = self.client.get('/gallery/handlePicLikeRetrieval?pk=2') #, {'pk':2}
+        #Trying to get private photo details
+        self.assertEqual(responseJSON.status_code, 403)
+        
+#     def test_create_like(self):
+#         p = picEntry.objects.get(pk=3)
+#         self.assertEqual(p.likes, 0)
+#         self.client.login(username='aGuy2', password='abc')
+#         responseJSON = self.client.post('/gallery/handlePicLikeUpdate', {'pk':3})
+#         self.assertEqual(responseJSON.status_code, 200)
+#         p = picEntry.objects.get(pk=3)
+#         self.assertEqual(p.likes, 1)
         
 class AnimalTests(TestCase):
     @classmethod

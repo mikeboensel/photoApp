@@ -109,6 +109,19 @@ class comment(models.Model):
     upload_date = models.DateTimeField(auto_now_add=True)
     edit_date = models.DateTimeField(default=None, blank=True, null=True)
 
+class pictureLikes(models.Model):
+    pic = models.ForeignKey(
+        picEntry,
+        on_delete=models.CASCADE,
+    )
+    
+    user = models.ForeignKey(
+        AuthUser,
+        on_delete=models.CASCADE,
+    )
+    
+    #oncreate increment the pic's like total
+
 
 class animal(models.Model):
     name = models.CharField(max_length=50)

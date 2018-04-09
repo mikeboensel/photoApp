@@ -1,9 +1,10 @@
 from django.shortcuts import render, get_object_or_404
 
+from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-from .models import picEntry, comment
+from .models import picEntry, comment, pictureLikes
 from django.utils import timezone
 from django.http import HttpResponse
 from django.http import JsonResponse
@@ -14,6 +15,7 @@ from struggla.users.models import User
 from _tkinter import create
 from django.http.response import Http404
 from htmlmin.decorators import minified_response
+from rest_framework.status import HTTP_400_BAD_REQUEST
 
 def index(request, userName='admin'):
     
@@ -82,10 +84,10 @@ def handlePicDelete(request):
     except picEntry.DoesNotExist:
         return createJSONMsg(False, "Invalid call. Bad argument", 400)
 
-def createJSONMsg(success, msg, status):
+def createJSONMsg(success, msg, status, data ={}):
     if status != 200:
         print(msg) 
-    return JsonResponse({'success':success, 'msg':msg}, status = status)
+    return JsonResponse({'success':success, 'msg':msg, 'data':data}, status = status)
 
 def index2(request):
     return HttpResponse('<h1> Getting: django.urls.exceptions.NoReverseMatch: Reverse for "gallery" with no arguments not found. 1 pattern(s) tried:</h1>')
@@ -110,7 +112,9 @@ def handlePicCommentAction(request):
     else:
         return createJSONMsg(False, "Bad request data", 400)
 
-#If pic public OR private and the user is the owner 
+"""If pic public OR private and the user is the owner
+    Returns (Bool, User(Possibly None))
+""" 
 def userIsAllowedToViewPic(submittingUser, picPK):
     try:
         p = picEntry.objects.get(pk=picPK)
@@ -132,6 +136,45 @@ def getPicComments(request):
 def handlePicPrivacyChange(request):
     pass
 
+"""Has the given user liked this photo?"""
+@require_http_methods(["GET"])
 @login_required
-def handlePicLike(request):
-    pass
+def handlePicLikeRetrieval(request):
+    picPK = request.GET.get('pk', None)    
+    tup = userIsAllowedToViewPic(request.user, picPK)
+    
+    if not tup[0]:
+        return createJSONMsg(False, "Not authorized to comment on this pic (or pic does not exist)", 403)
+    
+    try:
+        pictureLikes.objects.get(user = request.user, pic = tup[1])
+        return createJSONMsg(True, 'User previously liked this pic', 200, {'isLiked': True})
+    except pictureLikes.DoesNotExist:
+        return createJSONMsg(True, 'User has NOT liked this pic', 200, {'isLiked': False})
+
+"""Either creating a Like or destroying it (0-> +1) OR (+1 -> 0)"""
+@require_http_methods(["POST"])
+@login_required
+def handlePicLikeUpdate(request):
+    
+    picPK = request.POST.get('pk')
+    
+    tup = userIsAllowedToViewPic(request.user, picPK)
+    
+    if not tup[0]:
+        return createJSONMsg(False, "Not authorized to comment on this pic (or pic does not exist)", 403)
+    
+    try:
+        #Existed, so +1 -> 0. Remove.
+        likeObj = pictureLikes.objects.get(user = request.user, pic = tup[1])
+        likeObj.delete()
+        tup[1].likes = tup[1].likes-1
+    except pictureLikes.DoesNotExist:
+        #Create 0->1
+        likeObj= pictureLikes(pic = tup[1], user = request.user)
+        likeObj.save()
+        tup[1].likes = tup[1].likes+1
+        
+    tup[1].save()
+    
+    return createJSONMsg(True, '', 200)
