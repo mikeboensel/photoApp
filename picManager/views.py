@@ -16,6 +16,7 @@ from _tkinter import create
 from django.http.response import Http404
 from htmlmin.decorators import minified_response
 from rest_framework.status import HTTP_400_BAD_REQUEST
+from datetime import datetime    
 
 def index(request, userName='admin'):
     
@@ -92,7 +93,41 @@ def createJSONMsg(success, msg, status, data ={}):
 def index2(request):
     return HttpResponse('<h1> Getting: django.urls.exceptions.NoReverseMatch: Reverse for "gallery" with no arguments not found. 1 pattern(s) tried:</h1>')
     
+"""Given comment PK 
+"""
+@login_required
+@require_http_methods(["POST"])
+def handlePicCommentDelete(request):
+    pk = request.POST.get("commentPK", None)
+    com = get_object_or_404(comment, pk=pk)
     
+    if com.user!= request.user and com.associatePic.owner != request.user:
+        return createJSONMsg(False, "Not authorized to delete comment {0}".format(pk), 403); 
+    
+    com.delete()
+    
+    return createJSONMsg(True, "Successfully deleted comment {0}".format(pk), 200)
+
+@login_required
+@require_http_methods(["POST"])
+def handlePicCommentEdit(request):
+    pk = request.POST.get("commentPK", None)
+    com = get_object_or_404(comment, pk=pk)
+    
+    contents = request.POST.get("commentMsg", None)
+    if not contents:
+        return createJSONMsg(False, "Empty or no comment contents. Perhaps you want to delete comment {0} this?".format(pk), 404)
+    
+    if com.user!= request.user:
+        return createJSONMsg(False, "Not authorized to edit comment {0}".format(pk), 403);
+    
+    com.contents = contents
+    com.edit_date = datetime.now()
+    com.save()
+    
+    return createJSONMsg(True, "Successfully edit of comment {0}".format(pk), 200)
+
+
 @login_required
 def handlePicCommentAction(request):
     msg = request.POST.get('msg', None)
@@ -130,10 +165,12 @@ def getPicComments(request):
         return Http404()
     
     comments = comment.objects.filter(associatePic=pk).order_by('-upload_date')
+    
     return render(request, 'pages/commentList.html', {'comments':comments})
 
 @login_required
 def handlePicPrivacyChange(request):
+    
     pass
 
 """Has the given user liked this photo?"""

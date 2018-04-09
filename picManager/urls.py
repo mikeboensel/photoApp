@@ -10,6 +10,8 @@ urlpatterns = [
     re_path(r'^handlePicLikeRetrieval', views.handlePicLikeRetrieval, name='handlePicLikeRetrieval'),
     re_path(r'^handlePicPrivacyChange', views.handlePicPrivacyChange, name='handlePicPrivacyChange'),
     re_path(r'^handlePicCommentAction', views.handlePicCommentAction, name='handlePicCommentAction'),
+    re_path(r'^handlePicCommentDelete', views.handlePicCommentDelete, name='handlePicCommentDelete'),
+    re_path(r'^handlePicCommentEdit', views.handlePicCommentEdit, name='handlePicCommentEdit'),
     re_path(r'^getPicComments', views.getPicComments, name='getPicComments'),
     re_path(r'(?P<userName>\w+)[/]?$', views.index, name='gallery'),
 
