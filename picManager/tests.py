@@ -336,22 +336,22 @@ class CommentRetrieval(TestCase):
 #         self.assertGreater(c.edit_date, margin)
         pass
     
-#     def test_comment_edit_invalid_user_pic_owner(self):
-#         self.client.login(username='aGuy', password='abc')
-#         data = {"commentPK":2, "commentMsg":"New stuff"}
-#         response = self.client.post("/gallery/handlePicCommentEdit", data=data)
-#         
-#         self.assertEqual(response.status_code, 403)
-#         self.check_data_unchanged()
+    def test_comment_edit_invalid_user_pic_owner(self): #owns pic, but not the comment, can't edit
+        loginUser(self, 1)
+        data = {"commentPK":1, "commentMsg":"New stuff"}
+        response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+         
+        self.assertEqual(response.status_code, 403)
+        self.check_data_unchanged()
     
-#     def test_comment_edit_valid_user_comment_and_pic_owner(self):
-#         self.client.login(username='aGuy', password='abc')
-#         data = {"commentPK":1, "commentMsg":"New stuff"}
-#         response = self.client.post("/gallery/handlePicCommentEdit", data=data)
-#         
-#         self.assertEqual(response.status_code, 200)
-#         
-#         self.check_edit_occurred(data)
+    def test_comment_edit_valid_user_comment_and_pic_owner(self): #owns BOTH pic and comment
+        loginUser(self, 1)
+        data = {"commentPK":2, "commentMsg":"New stuff"}
+        response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+         
+        self.assertEqual(response.status_code, 200)
+         
+        self.check_edit_occurred(data)
     
     def test_comment_edit_invalid_user(self): #neither comment owner or pic owner
         loginUser(self, 3)
@@ -371,15 +371,15 @@ class CommentRetrieval(TestCase):
         
         self.check_data_unchanged()
     
-#     def test_comment_edit_non_existent_comment(self):
-#         self.client.login(username='aGuy3', password='abc')
-#         
-#         data = {"commentPK":99, "commentMsg":"New stuff"}
-#         response = self.client.post("/gallery/handlePicCommentEdit", data=data)
-#         
-#         self.assertEqual(response.status_code, 400)
-#         
-#         self.check_data_unchanged()
+    def test_comment_edit_non_existent_comment(self):
+        loginUser(self, 3)
+         
+        data = {"commentPK":99, "commentMsg":"New stuff"}
+        response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+         
+        self.assertEqual(response.status_code, 404)
+         
+        self.check_data_unchanged()
     
     def tearDown(self):
         universalTearDown()
