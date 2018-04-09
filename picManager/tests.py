@@ -3,11 +3,12 @@ from django.test import TestCase
 from .views import handleMultipleUpload
 from picManager.views import handlePicLikeRetrieval, handlePicLikeUpdate, \
     handlePicPrivacyChange, handlePicDelete, index, getPicComments, \
-    handlePicCommentAction
+    handlePicCommentAction, handlePicCommentEdit, handlePicCommentDelete
 from picManager.models import picEntry, animal, comment, pictureLikes
 from django.core.files.uploadedfile import SimpleUploadedFile
 from struggla.users.models import User
 import json
+from datetime import timedelta, datetime, timezone
 
 def universalTearDown():
     for p in picEntry.objects.all():
@@ -46,7 +47,16 @@ class ViewResolutions(TestCase):
         
     def test_get_comment_resolves_view(self):
         view = resolve('/gallery/getPicComments?pic=1')
-        self.assertEquals(view.func, getPicComments)   
+        self.assertEquals(view.func, getPicComments) 
+        
+    def test_comment_edit_resolves_view(self):
+        view = resolve('/gallery/handlePicCommentEdit')
+        self.assertEquals(view.func, handlePicCommentEdit)
+    
+    def test_comment_delete_resolves_view(self):
+        view = resolve('/gallery/handlePicCommentDelete')
+        self.assertEquals(view.func, handlePicCommentDelete)
+    
     
     def create_pic(self):  # TODO WTF? What does this one even do?
         response = self.client.get('/media/ChessRobot.jpg')
@@ -152,8 +162,8 @@ class DeleteAction(TestCase):
         self.client.login(username='aGuy', password='abc')
         data = {'pk':1}
         responseJSON = self.client.post(DeleteAction.__url, data=data)
+
         self.assertEqual(responseJSON.status_code, 200)
-        # TODO assert item deleted
         try:
             picEntry.objects.get(pk=1)
             self.fail("Deleted element still exists in DB!!!")
@@ -239,6 +249,9 @@ class CommentRetrieval(TestCase):
     def setUp(self):
         userA = User.objects.create_user(username='aGuy', email='em@gmail.com', password='abc')
         userB = User.objects.create_user(username='aGuy2', email='em@gmail.com', password='abc')
+        userC = User.objects.create_user(username='aGuy3', email='em@gmail.com', password='abc')
+
+        
         pic_public = SimpleUploadedFile(name='_test_public.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
         pic_private = SimpleUploadedFile(name='_test_private.jpg', content=open('struggla\static\images\couple_in_car.jpg', 'rb').read(), content_type='image/jpeg')
         
@@ -250,43 +263,122 @@ class CommentRetrieval(TestCase):
         comment.objects.create(associatePic=pic_entry_public, user=userA, contents="Good to see you")
     
     def test_comment_delete_valid_user_comment_owner(self):
-        
-        pass
-    
+        self.client.login(username='aGuy2', password='abc')
+        self.delete_one_assert_rest_still_remain(1,2,1)
+            
     def test_comment_delete_valid_user_pic_owner(self):
-        pass
-    
+        self.client.login(username='aGuy', password='abc')
+        self.delete_one_assert_rest_still_remain(1,2,1)
+
     def test_comment_delete_valid_user_comment_and_pic_owner(self):
-        pass
+        self.client.login(username='aGuy', password='abc')
+        self.delete_one_assert_rest_still_remain(2,1,1)
+    
+    def delete_one_assert_rest_still_remain(self, expectedDeletedPK, expectedRemainingPK,  totalRemaining):
+        response = self.client.post("/gallery/handlePicCommentDelete", data={"commentPK":expectedDeletedPK})
+        self.assertEqual(response.status_code, 200)
+        try:
+            comment.objects.get(pk=expectedDeletedPK)
+            self.fail("Comment {0} still exists after delete!".format(expectedDeletedPK))
+        except comment.DoesNotExist:
+            self.assertEqual(len(comment.objects.filter(pk=expectedRemainingPK)), 1) #ensure other comment still exists
+            self.assertEqual(comment.objects.count(), totalRemaining) # and that its the only one
     
     def test_comment_delete_invalid_user(self):
-        pass
-    
+        self.client.login(username='aGuy3', password='abc')
+        response = self.client.post("/gallery/handlePicCommentDelete", data={"commentPK":1})
+        
+        self.assertEqual(response.status_code, 403)
+        self.check_data_unchanged()
+
     def test_comment_delete_non_loggedin_user(self):
-        pass
+        response = self.client.post("/gallery/handlePicCommentDelete", data={"commentPK":1})
+        
+        self.assertEqual(response.status_code, 302)
+        self.check_data_unchanged()
     
     def test_comment_delete_non_existent_comment(self):
-        pass
+        self.client.login(username='aGuy', password='abc')
+        response = self.client.post("/gallery/handlePicCommentDelete", data={"commentPK":99})
+
+        self.assertEqual(response.status_code, 404)
+    
+    #TODO better tests
+    def check_data_unchanged(self):
+        self.assertEqual(comment.objects.count(), 2) #both items still exist
     
     ##############
     
     def test_comment_edit_valid_user_comment_owner(self):
+        self.client.login(username='aGuy2', password='abc')
+        data = {"commentPK":1, "commentMsg":"New stuff"}
+        response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+        
+        self.assertEqual(response.status_code, 200)
+        self.check_edit_occurred(data)
+        
+    def check_edit_occurred(self, data):
+        try:
+            c = comment.objects.get(pk=data["commentPK"])
+            self.assertEqual(c.contents, data['commentMsg'])
+            #expect an edit_date within the last minutes
+            self.check_edit_time(c)
+            
+        except comment.DoesNotExist:
+            self.fail("Cannot find editted comment")
+            
+        
+    def check_edit_time(self, c):
+        #TODO UTC ok? Brings up bigger question of determining where user is and what time to record
+        #TODO hot mess. Come back to
+#         margin = datetime.now() - timedelta(minutes=1) 
+#         self.assertGreater(c.edit_date, margin)
         pass
     
-    def test_comment_edit_invalid_user_pic_owner(self):
-        pass
+#     def test_comment_edit_invalid_user_pic_owner(self):
+#         self.client.login(username='aGuy', password='abc')
+#         data = {"commentPK":2, "commentMsg":"New stuff"}
+#         response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+#         
+#         self.assertEqual(response.status_code, 403)
+#         self.check_data_unchanged()
     
-    def test_comment_edit_valid_user_comment_and_pic_owner(self):
-        pass
+#     def test_comment_edit_valid_user_comment_and_pic_owner(self):
+#         self.client.login(username='aGuy', password='abc')
+#         data = {"commentPK":1, "commentMsg":"New stuff"}
+#         response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+#         
+#         self.assertEqual(response.status_code, 200)
+#         
+#         self.check_edit_occurred(data)
     
     def test_comment_edit_invalid_user(self): #neither comment owner or pic owner
-        pass
+        self.client.login(username='aGuy3', password='abc')
+        
+        data = {"commentPK":1, "commentMsg":"New stuff"}
+        response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+        
+        self.assertEqual(response.status_code, 403)
+        
+        self.check_data_unchanged()
     
     def test_comment_edit_non_loggedin_user(self):
-        pass
+        data = {"commentPK":1, "commentMsg":"New stuff"}
+        response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+        
+        self.assertEqual(response.status_code, 302) #redirect
+        
+        self.check_data_unchanged()
     
-    def test_comment_edit_non_existent_comment(self):
-        pass
+#     def test_comment_edit_non_existent_comment(self):
+#         self.client.login(username='aGuy3', password='abc')
+#         
+#         data = {"commentPK":99, "commentMsg":"New stuff"}
+#         response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+#         
+#         self.assertEqual(response.status_code, 400)
+#         
+#         self.check_data_unchanged()
     
     def tearDown(self):
         universalTearDown()

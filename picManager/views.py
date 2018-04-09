@@ -108,6 +108,9 @@ def handlePicCommentDelete(request):
     
     return createJSONMsg(True, "Successfully deleted comment {0}".format(pk), 200)
 
+""" Expects commentPK and commentMsg args 
+"""
+
 @login_required
 @require_http_methods(["POST"])
 def handlePicCommentEdit(request):
