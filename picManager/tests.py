@@ -9,6 +9,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from struggla.users.models import User
 import json
 from datetime import timedelta, datetime, timezone
+from nt import getpid
 
 def universalTearDown():
     for p in picEntry.objects.all():
@@ -158,7 +159,7 @@ class DeleteAction(TestCase):
         self.safeDelete(self.pic_thumb)    
         
     
-    __url = '/gallery/handlePicDelete'
+    __url = reverse(handlePicDelete) #'/gallery/handlePicDelete'
     
     def data_unchanged(self):
         self.assertEqual(len(picEntry.objects.all()), 2)  # Both pics should still exist
@@ -209,6 +210,8 @@ class CommentCreation(TestCase):
         
     def tearDown(self):
         universalTearDown()
+        
+    addCommentURL = reverse(handlePicCommentAction)
     
     # TODO use reverse so that we aren't tightly coupled to URL mappings on refactoring (only viewTests are)
     # We want to test permissions. Only need to change logged in user and PK   
@@ -216,7 +219,7 @@ class CommentCreation(TestCase):
         msg = "New comment"
         data = {'pk':pk, 'msg':msg}
 #         reverse(handlePicCommentAction, urlconf, args, kwargs, current_app)
-        responseJSON = self.client.post('/gallery/handlePicCommentAction', data=data)
+        responseJSON = self.client.post(CommentCreation.addCommentURL, data=data)
         
         self.assertEqual(responseJSON.status_code, 200)
         c = comment.objects.get(associatePic=pk)
@@ -237,12 +240,12 @@ class CommentCreation(TestCase):
         self.check_legit_comment_case(1)
 
     def test_nonloggedin_user_comments(self):
-        responseJSON = self.client.post('/gallery/handlePicCommentAction')
+        responseJSON = self.client.post(CommentCreation.addCommentURL)
         self.assertEqual(responseJSON.status_code, 302)
 
     # expected client login prior. Permissions check
     def check_bad_comment_case(self, pk):
-        responseJSON = self.client.post('/gallery/handlePicCommentAction', data={'msg':"w/e", "pk":pk})
+        responseJSON = self.client.post(CommentCreation.addCommentURL, data={'msg':"w/e", "pk":pk})
         
         self.assertEqual(responseJSON.status_code, 403)  # forbidden
         self.assertEqual(0, len(comment.objects.all()))  # no comment created
@@ -256,12 +259,21 @@ class CommentCreation(TestCase):
         self.check_bad_comment_case(99)
         
 class CommentRetrieval(TestCase):
+        
     def setUp(self):
         tup = baselineSetup()
         
         # no comments on private pic, 2 on public
         comment.objects.create(associatePic=tup['picEntries'][0], user=tup['users'][1], contents="HideyHoo!")
         comment.objects.create(associatePic=tup['picEntries'][0], user=tup['users'][0], contents="Good to see you")
+        
+    def tearDown(self):
+        universalTearDown()
+    
+    ###########Delete
+    
+    deleteURL = reverse(handlePicCommentDelete)
+
     
     def test_comment_delete_valid_user_comment_owner(self):
         loginUser(self, 2)
@@ -276,7 +288,7 @@ class CommentRetrieval(TestCase):
         self.delete_one_assert_rest_still_remain(2,1,1)
     
     def delete_one_assert_rest_still_remain(self, expectedDeletedPK, expectedRemainingPK,  totalRemaining):
-        response = self.client.post("/gallery/handlePicCommentDelete", data={"commentPK":expectedDeletedPK})
+        response = self.client.post(CommentRetrieval.deleteURL, data={"commentPK":expectedDeletedPK})
         self.assertEqual(response.status_code, 200)
         try:
             comment.objects.get(pk=expectedDeletedPK)
@@ -287,20 +299,20 @@ class CommentRetrieval(TestCase):
     
     def test_comment_delete_invalid_user(self):
         loginUser(self, 3)
-        response = self.client.post("/gallery/handlePicCommentDelete", data={"commentPK":1})
+        response = self.client.post(CommentRetrieval.deleteURL, data={"commentPK":1})
         
         self.assertEqual(response.status_code, 403)
         self.check_data_unchanged()
 
     def test_comment_delete_non_loggedin_user(self):
-        response = self.client.post("/gallery/handlePicCommentDelete", data={"commentPK":1})
+        response = self.client.post(CommentRetrieval.deleteURL, data={"commentPK":1})
         
         self.assertEqual(response.status_code, 302)
         self.check_data_unchanged()
     
     def test_comment_delete_non_existent_comment(self):
         loginUser(self, 1)
-        response = self.client.post("/gallery/handlePicCommentDelete", data={"commentPK":99})
+        response = self.client.post(CommentRetrieval.deleteURL, data={"commentPK":99})
 
         self.assertEqual(response.status_code, 404)
     
@@ -308,12 +320,14 @@ class CommentRetrieval(TestCase):
     def check_data_unchanged(self):
         self.assertEqual(comment.objects.count(), 2) #both items still exist
     
-    ##############
+    ############## EDIT PIC Comments
+    
+    editURL = reverse(handlePicCommentEdit)
     
     def test_comment_edit_valid_user_comment_owner(self):
         loginUser(self, 2)
         data = {"commentPK":1, "commentMsg":"New stuff"}
-        response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+        response = self.client.post(CommentRetrieval.editURL, data=data)
         
         self.assertEqual(response.status_code, 200)
         self.check_edit_occurred(data)
@@ -334,12 +348,16 @@ class CommentRetrieval(TestCase):
         #TODO hot mess. Come back to
 #         margin = datetime.now() - timedelta(minutes=1) 
 #         self.assertGreater(c.edit_date, margin)
+#https://stackoverflow.com/questions/2331592/why-does-datetime-datetime-utcnow-not-contain-timezone-information?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+#https://howchoo.com/g/ywi5m2vkodk/working-with-datetime-objects-and-timezones-in-python
+#https://stackoverflow.com/questions/796008/cant-subtract-offset-naive-and-offset-aware-datetimes?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+#https://docs.python.org/3/library/datetime.html
         pass
     
     def test_comment_edit_invalid_user_pic_owner(self): #owns pic, but not the comment, can't edit
         loginUser(self, 1)
         data = {"commentPK":1, "commentMsg":"New stuff"}
-        response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+        response = self.client.post(CommentRetrieval.editURL, data=data)
          
         self.assertEqual(response.status_code, 403)
         self.check_data_unchanged()
@@ -347,7 +365,7 @@ class CommentRetrieval(TestCase):
     def test_comment_edit_valid_user_comment_and_pic_owner(self): #owns BOTH pic and comment
         loginUser(self, 1)
         data = {"commentPK":2, "commentMsg":"New stuff"}
-        response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+        response = self.client.post(CommentRetrieval.editURL, data=data)
          
         self.assertEqual(response.status_code, 200)
          
@@ -357,7 +375,7 @@ class CommentRetrieval(TestCase):
         loginUser(self, 3)
         
         data = {"commentPK":1, "commentMsg":"New stuff"}
-        response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+        response = self.client.post(CommentRetrieval.editURL, data=data)
         
         self.assertEqual(response.status_code, 403)
         
@@ -365,7 +383,7 @@ class CommentRetrieval(TestCase):
     
     def test_comment_edit_non_loggedin_user(self):
         data = {"commentPK":1, "commentMsg":"New stuff"}
-        response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+        response = self.client.post(CommentRetrieval.editURL, data=data)
         
         self.assertEqual(response.status_code, 302) #redirect
         
@@ -375,16 +393,16 @@ class CommentRetrieval(TestCase):
         loginUser(self, 3)
          
         data = {"commentPK":99, "commentMsg":"New stuff"}
-        response = self.client.post("/gallery/handlePicCommentEdit", data=data)
+        response = self.client.post(CommentRetrieval.editURL, data=data)
          
         self.assertEqual(response.status_code, 404)
          
         self.check_data_unchanged()
     
-    def tearDown(self):
-        universalTearDown()
-
+################### GetPicComments
     def test_get_empty_comment_list(self):
+#         url = reverse(getPicComments, kwargs={"pic":2}) #TODO Get reverse. Might need to edit routes
+
         response = self.client.get('/gallery/getPicComments?pic=2')
         print(response)
         print(response.content)
